@@ -1,11 +1,11 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, make_response
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
 from models import db, User, Plant, CareSchedule, Tip, ForumPost, GardenLayout
 
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://yourusername:yourpassword@localhost/greenthumb'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///greenthumb.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SECRET_KEY'] = 'you-will-never-guess'
 app.config['JWT_SECRET_KEY'] = 'jwt-secret-string'
@@ -46,7 +46,15 @@ def login():
         return jsonify({"msg": "Invalid credentials"}), 401
     
     access_token = create_access_token(identity=user.id)
-    return jsonify(access_token=access_token), 200
+    response = make_response(jsonify(access_token=access_token), 200)
+    response.set_cookie('jwt', access_token, httponly=True)
+    return response
+
+@app.route('/logout', methods=['POST'])
+def logout():
+    response = make_response(jsonify({"msg": "Logged out successfully"}), 200)
+    response.delete_cookie('jwt')
+    return response
 
 @app.route('/plants', methods=['POST'])
 @jwt_required()
