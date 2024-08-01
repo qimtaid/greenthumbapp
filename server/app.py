@@ -1,146 +1,169 @@
 from flask import Flask, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
+from datetime import datetime
+from werkzeug.security import generate_password_hash, check_password_hash
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
-from models import db, User, Plant, CareSchedule, Tip, ForumPost, GardenLayout
+
 
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://yourusername:yourpassword@localhost/greenthumb'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///greenthumb.db'  # Update for your database
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['SECRET_KEY'] = 'you-will-never-guess'
-app.config['JWT_SECRET_KEY'] = 'jwt-secret-string'
-
-db.init_app(app)
+db = SQLAlchemy(app)
 migrate = Migrate(app, db)
-jwt = JWTManager(app)
+jqt = JWTManager(app)
 
-@app.route('/register', methods=['POST'])
-def register():
-    data = request.get_json()
-    username = data.get('username')
-    email = data.get('email')
-    password = data.get('password')
-    
-    if User.query.filter_by(username=username).first():
-        return jsonify({"msg": "Username already exists"}), 400
-    
-    if User.query.filter_by(email=email).first():
-        return jsonify({"msg": "Email already exists"}), 400
-    
-    new_user = User(username=username, email=email)
-    new_user.set_password(password)
-    db.session.add(new_user)
-    db.session.commit()
-    
-    return jsonify({"msg": "User registered successfully"}), 201
+class User(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(64), unique=True, nullable=False)
+    email = db.Column(db.String(120), unique=True, nullable=False)
+    password_hash = db.Column(db.String(128), nullable=False)
 
-@app.route('/login', methods=['POST'])
-def login():
-    data = request.get_json()
-    email = data.get('email')
-    password = data.get('password')
-    
-    user = User.query.filter_by(email=email).first()
-    
-    if user is None or not user.check_password(password):
-        return jsonify({"msg": "Invalid credentials"}), 401
-    
-    access_token = create_access_token(identity=user.id)
-    return jsonify(access_token=access_token), 200
+    def set_password(self, password):
+        self.password_hash = generate_password_hash(password)
 
-@app.route('/plants', methods=['POST'])
-@jwt_required()
-def add_plant():
-    data = request.get_json()
-    name = data.get('name')
-    user_id = get_jwt_identity()
-    
-    new_plant = Plant(name=name, user_id=user_id)
-    db.session.add(new_plant)
-    db.session.commit()
-    
-    return jsonify({"msg": "Plant added successfully"}), 201
+    def check_password(self, password):
+        return check_password_hash(self.password_hash, password)
+
+class Plant(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(64), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    care_schedules = db.relationship('CareSchedule', backref='plant', lazy=True)
+
+class CareSchedule(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    plant_id = db.Column(db.Integer, db.ForeignKey('plant.id'))
+    task = db.Column(db.String(64), nullable=False)
+    schedule_date = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+
+class Tip(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(128), nullable=False)
+    content = db.Column(db.Text, nullable=False)
+    author_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+
+class ForumPost(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(128), nullable=False)
+    content = db.Column(db.Text, nullable=False)
+    author_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+
+class GardenLayout(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(64), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    layout_data = db.Column(db.Text, nullable=False)
+
+# CRUD Operations for Plants
 
 @app.route('/plants', methods=['GET'])
-@jwt_required()
 def get_plants():
-    user_id = get_jwt_identity()
-    plants = Plant.query.filter_by(user_id=user_id).all()
-    return jsonify([{"id": plant.id, "name": plant.name} for plant in plants]), 200
+    plants = Plant.query.all()
+    return jsonify([plant.to_dict() for plant in plants])
 
-# Care Schedule Management
-@app.route('/plants/<int:plant_id>/schedule', methods=['POST'])
-@jwt_required()
-def add_care_schedule(plant_id):
-    data = request.get_json()
-    task = data.get('task')
-    schedule_date = data.get('schedule_date')
-    new_schedule = CareSchedule(plant_id=plant_id, task=task, schedule_date=schedule_date)
-    db.session.add(new_schedule)
+@app.route('/plants', methods=['POST'])
+def create_plant():
+    data = request.json
+    plant = Plant(name=data['name'], user_id=data['user_id'])
+    db.session.add(plant)
     db.session.commit()
-    return jsonify({"msg": "Care schedule added successfully"}), 201
+    return jsonify(plant.to_dict()), 201
+
+@app.route('/plants/<int:id>', methods=['DELETE'])
+def delete_plant(id):
+    plant = Plant.query.get_or_404(id)
+    db.session.delete(plant)
+    db.session.commit()
+    return '', 204
+
+# CRUD Operations for CareSchedules
 
 @app.route('/plants/<int:plant_id>/schedule', methods=['GET'])
-@jwt_required()
 def get_care_schedules(plant_id):
     schedules = CareSchedule.query.filter_by(plant_id=plant_id).all()
-    return jsonify([{"id": schedule.id, "task": schedule.task, "schedule_date": schedule.schedule_date} for schedule in schedules]), 200
+    return jsonify([schedule.to_dict() for schedule in schedules])
 
-# Tips Management
-@app.route('/tips', methods=['POST'])
-@jwt_required()
-def add_tip():
-    data = request.get_json()
-    title = data.get('title')
-    content = data.get('content')
-    author_id = get_jwt_identity()
-    new_tip = Tip(title=title, content=content, author_id=author_id)
-    db.session.add(new_tip)
+@app.route('/plants/<int:plant_id>/schedule', methods=['POST'])
+def create_care_schedule(plant_id):
+    data = request.json
+    schedule = CareSchedule(task=data['task'], schedule_date=datetime.utcnow(), plant_id=plant_id)
+    db.session.add(schedule)
     db.session.commit()
-    return jsonify({"msg": "Tip added successfully"}), 201
+    return jsonify(schedule.to_dict()), 201
+
+@app.route('/plants/<int:plant_id>/schedule/<int:schedule_id>', methods=['DELETE'])
+def delete_care_schedule(plant_id, schedule_id):
+    schedule = CareSchedule.query.get_or_404(schedule_id)
+    db.session.delete(schedule)
+    db.session.commit()
+    return '', 204
+
+# CRUD Operations for Tips
 
 @app.route('/tips', methods=['GET'])
 def get_tips():
     tips = Tip.query.all()
-    return jsonify([{"id": tip.id, "title": tip.title, "content": tip.content} for tip in tips]), 200
+    return jsonify([tip.to_dict() for tip in tips])
 
-# Forum Post Management
-@app.route('/forum', methods=['POST'])
-@jwt_required()
-def add_forum_post():
-    data = request.get_json()
-    title = data.get('title')
-    content = data.get('content')
-    author_id = get_jwt_identity()
-    new_post = ForumPost(title=title, content=content, author_id=author_id)
-    db.session.add(new_post)
+@app.route('/tips', methods=['POST'])
+def create_tip():
+    data = request.json
+    tip = Tip(title=data['title'], content=data['content'], author_id=data['author_id'])
+    db.session.add(tip)
     db.session.commit()
-    return jsonify({"msg": "Forum post added successfully"}), 201
+    return jsonify(tip.to_dict()), 201
+
+@app.route('/tips/<int:id>', methods=['DELETE'])
+def delete_tip(id):
+    tip = Tip.query.get_or_404(id)
+    db.session.delete(tip)
+    db.session.commit()
+    return '', 204
+
+# CRUD Operations for ForumPosts
 
 @app.route('/forum', methods=['GET'])
 def get_forum_posts():
     posts = ForumPost.query.all()
-    return jsonify([{"id": post.id, "title": post.title, "content": post.content} for post in posts]), 200
+    return jsonify([post.to_dict() for post in posts])
 
-# Garden Layout Management
-@app.route('/layouts', methods=['POST'])
-@jwt_required()
-def add_garden_layout():
-    data = request.get_json()
-    name = data.get('name')
-    layout_data = data.get('layout_data')
-    user_id = get_jwt_identity()
-    new_layout = GardenLayout(name=name, user_id=user_id, layout_data=layout_data)
-    db.session.add(new_layout)
+@app.route('/forum', methods=['POST'])
+def create_forum_post():
+    data = request.json
+    post = ForumPost(title=data['title'], content=data['content'], author_id=data['author_id'])
+    db.session.add(post)
     db.session.commit()
-    return jsonify({"msg": "Garden layout added successfully"}), 201
+    return jsonify(post.to_dict()), 201
+
+@app.route('/forum/<int:id>', methods=['DELETE'])
+def delete_forum_post(id):
+    post = ForumPost.query.get_or_404(id)
+    db.session.delete(post)
+    db.session.commit()
+    return '', 204
+
+# CRUD Operations for GardenLayouts
 
 @app.route('/layouts', methods=['GET'])
-@jwt_required()
 def get_garden_layouts():
-    user_id = get_jwt_identity()
-    layouts = GardenLayout.query.filter_by(user_id=user_id).all()
-    return jsonify([{"id": layout.id, "name": layout.name, "layout_data": layout.layout_data} for layout in layouts]), 200
+    layouts = GardenLayout.query.all()
+    return jsonify([layout.to_dict() for layout in layouts])
+
+@app.route('/layouts', methods=['POST'])
+def create_garden_layout():
+    data = request.json
+    layout = GardenLayout(name=data['name'], user_id=data['user_id'], layout_data=data['layout_data'])
+    db.session.add(layout)
+    db.session.commit()
+    return jsonify(layout.to_dict()), 201
+
+@app.route('/layouts/<int:id>', methods=['DELETE'])
+def delete_garden_layout(id):
+    layout = GardenLayout.query.get_or_404(id)
+    db.session.delete(layout)
+    db.session.commit()
+    return '', 204
 
 if __name__ == '__main__':
     app.run(debug=True)
