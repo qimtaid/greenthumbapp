@@ -1,6 +1,8 @@
 from flask import Flask, request, jsonify, make_response
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
+from flask_cors import CORS
+from flask_swagger_ui import get_swaggerui_blueprint
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
 from models import db, User, Plant, CareSchedule, Tip, ForumPost, GardenLayout
 
@@ -13,6 +15,21 @@ app.config['JWT_SECRET_KEY'] = 'jwt-secret-string'
 db.init_app(app)
 migrate = Migrate(app, db)
 jwt = JWTManager(app)
+CORS(app)
+
+SWAGGER_URL = '/api/docs'
+API_URL = '/static/swagger.json'
+
+swaggerui_blueprint = get_swaggerui_blueprint(
+    SWAGGER_URL,
+    API_URL,
+    config={
+        'app_name': "GreenThumb API"
+    }
+)
+
+app.register_blueprint(swaggerui_blueprint)
+
 
 @app.route('/register', methods=['POST'])
 def register():

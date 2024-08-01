@@ -1,0 +1,417 @@
+{
+    "swagger": "2.0",
+    "info": {
+      "description": "GreenThumb App API Documentation",
+      "version": "1.0.0",
+      "title": "GreenThumb API"
+    },
+    "host": "localhost:5000",
+    "basePath": "/",
+    "tags": [
+      {
+        "name": "User",
+        "description": "User management"
+      },
+      {
+        "name": "Plant",
+        "description": "Plant management"
+      },
+      {
+        "name": "Care Schedule",
+        "description": "Care schedule management"
+      },
+      {
+        "name": "Tip",
+        "description": "Gardening tips management"
+      },
+      {
+        "name": "Forum",
+        "description": "Forum posts management"
+      },
+      {
+        "name": "Garden Layout",
+        "description": "Garden layout management"
+      }
+    ],
+    "schemes": [
+      "http"
+    ],
+    "paths": {
+      "/register": {
+        "post": {
+          "tags": ["User"],
+          "summary": "Register a new user",
+          "description": "",
+          "consumes": ["application/json"],
+          "produces": ["application/json"],
+          "parameters": [
+            {
+              "in": "body",
+              "name": "body",
+              "description": "User object",
+              "required": true,
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "username": {
+                    "type": "string"
+                  },
+                  "email": {
+                    "type": "string"
+                  },
+                  "password": {
+                    "type": "string"
+                  }
+                },
+                "required": ["username", "email", "password"]
+              }
+            }
+          ],
+          "responses": {
+            "201": {
+              "description": "User registered successfully"
+            },
+            "400": {
+              "description": "Username or email already exists"
+            }
+          }
+        }
+      },
+      "/login": {
+        "post": {
+          "tags": ["User"],
+          "summary": "User login",
+          "description": "",
+          "consumes": ["application/json"],
+          "produces": ["application/json"],
+          "parameters": [
+            {
+              "in": "body",
+              "name": "body",
+              "description": "Login object",
+              "required": true,
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "type": "string"
+                  },
+                  "password": {
+                    "type": "string"
+                  }
+                },
+                "required": ["email", "password"]
+              }
+            }
+          ],
+          "responses": {
+            "200": {
+              "description": "Login successful"
+            },
+            "401": {
+              "description": "Invalid credentials"
+            }
+          }
+        }
+      },
+      "/logout": {
+        "post": {
+          "tags": ["User"],
+          "summary": "User logout",
+          "description": "",
+          "produces": ["application/json"],
+          "responses": {
+            "200": {
+              "description": "Logged out successfully"
+            }
+          }
+        }
+      },
+      "/plants": {
+        "post": {
+          "tags": ["Plant"],
+          "summary": "Add a new plant",
+          "description": "",
+          "consumes": ["application/json"],
+          "produces": ["application/json"],
+          "parameters": [
+            {
+              "in": "body",
+              "name": "body",
+              "description": "Plant object",
+              "required": true,
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  }
+                },
+                "required": ["name"]
+              }
+            }
+          ],
+          "responses": {
+            "201": {
+              "description": "Plant added successfully"
+            }
+          },
+          "security": [
+            {
+              "Bearer": []
+            }
+          ]
+        },
+        "get": {
+          "tags": ["Plant"],
+          "summary": "Get user's plants",
+          "description": "",
+          "produces": ["application/json"],
+          "responses": {
+            "200": {
+              "description": "List of plants"
+            }
+          },
+          "security": [
+            {
+              "Bearer": []
+            }
+          ]
+        }
+      },
+      "/plants/{plant_id}/schedule": {
+        "post": {
+          "tags": ["Care Schedule"],
+          "summary": "Add a care schedule for a plant",
+          "description": "",
+          "consumes": ["application/json"],
+          "produces": ["application/json"],
+          "parameters": [
+            {
+              "name": "plant_id",
+              "in": "path",
+              "required": true,
+              "type": "integer"
+            },
+            {
+              "in": "body",
+              "name": "body",
+              "description": "Care schedule object",
+              "required": true,
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "task": {
+                    "type": "string"
+                  },
+                  "schedule_date": {
+                    "type": "string",
+                    "format": "date-time"
+                  }
+                },
+                "required": ["task", "schedule_date"]
+              }
+            }
+          ],
+          "responses": {
+            "201": {
+              "description": "Care schedule added successfully"
+            }
+          },
+          "security": [
+            {
+              "Bearer": []
+            }
+          ]
+        },
+        "get": {
+          "tags": ["Care Schedule"],
+          "summary": "Get care schedules for a plant",
+          "description": "",
+          "produces": ["application/json"],
+          "parameters": [
+            {
+              "name": "plant_id",
+              "in": "path",
+              "required": true,
+              "type": "integer"
+            }
+          ],
+          "responses": {
+            "200": {
+              "description": "List of care schedules"
+            }
+          },
+          "security": [
+            {
+              "Bearer": []
+            }
+          ]
+        }
+      },
+      "/tips": {
+        "post": {
+          "tags": ["Tip"],
+          "summary": "Add a gardening tip",
+          "description": "",
+          "consumes": ["application/json"],
+          "produces": ["application/json"],
+          "parameters": [
+            {
+              "in": "body",
+              "name": "body",
+              "description": "Tip object",
+              "required": true,
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "title": {
+                    "type": "string"
+                  },
+                  "content": {
+                    "type": "string"
+                  }
+                },
+                "required": ["title", "content"]
+              }
+            }
+          ],
+          "responses": {
+            "201": {
+              "description": "Tip added successfully"
+            }
+          },
+          "security": [
+            {
+              "Bearer": []
+            }
+          ]
+        },
+        "get": {
+          "tags": ["Tip"],
+          "summary": "Get all gardening tips",
+          "description": "",
+          "produces": ["application/json"],
+          "responses": {
+            "200": {
+              "description": "List of gardening tips"
+            }
+          }
+        }
+      },
+      "/forum": {
+        "post": {
+          "tags": ["Forum"],
+          "summary": "Add a forum post",
+          "description": "",
+          "consumes": ["application/json"],
+          "produces": ["application/json"],
+          "parameters": [
+            {
+              "in": "body",
+              "name": "body",
+              "description": "Forum post object",
+              "required": true,
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "title": {
+                    "type": "string"
+                  },
+                  "content": {
+                    "type": "string"
+                  }
+                },
+                "required": ["title", "content"]
+              }
+            }
+          ],
+          "responses": {
+            "201": {
+              "description": "Forum post added successfully"
+            }
+          },
+          "security": [
+            {
+              "Bearer": []
+            }
+          ]
+        },
+        "get": {
+          "tags": ["Forum"],
+          "summary": "Get all forum posts",
+          "description": "",
+          "produces": ["application/json"],
+          "responses": {
+            "200": {
+              "description": "List of forum posts"
+            }
+          }
+        }
+      },
+      "/layouts": {
+        "post": {
+          "tags": ["Garden Layout"],
+          "summary": "Add a garden layout",
+          "description": "",
+          "consumes": ["application/json"],
+          "produces": ["application/json"],
+          "parameters": [
+            {
+              "in": "body",
+              "name": "body",
+              "description": "Garden layout object",
+              "required": true,
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "layout_data": {
+                    "type": "string"
+                  }
+                },
+                "required": ["name", "layout_data"]
+              }
+            }
+          ],
+          "responses": {
+            "201": {
+              "description": "Garden layout added successfully"
+            }
+          },
+          "security": [
+            {
+              "Bearer": []
+            }
+          ]
+        },
+        "get": {
+          "tags": ["Garden Layout"],
+          "summary": "Get user's garden layouts",
+          "description": "",
+          "produces": ["application/json"],
+          "responses": {
+            "200": {
+              "description": "List of garden layouts"
+            }
+          },
+          "security": [
+            {
+              "Bearer": []
+            }
+          ]
+        }
+      }
+    },
+    "definitions": {},
+    "securityDefinitions": {
+      "Bearer": {
+        "type": "apiKey",
+        "name": "Authorization",
+        "in": "header"
+      }
+    }
+  }
+  
