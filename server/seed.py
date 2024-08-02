@@ -46,12 +46,15 @@ def create_sample_data():
         post1 = ForumPost(title='How to grow watermelon?', content='Any tips for growing watermelon?', author_id=user1.id)
         post2 = ForumPost(title='Best fertilizer for lily?', content='What is the best fertilizer for lilies?', author_id=user2.id)
 
+
         db.session.add(post1)
         db.session.add(post2)
+
 
         # Create garden layouts
         layout1 = GardenLayout(name='Vegetable Garden', layout_data='Layout data for vegetable garden', user_id=user1.id)
         layout2 = GardenLayout(name='Flower Garden', layout_data='Layout data for flower garden', user_id=user2.id)
+
 
         db.session.add(layout1)
         db.session.add(layout2)
