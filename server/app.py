@@ -18,6 +18,10 @@ db.init_app(app)
 migrate = Migrate(app, db)
 jwt = JWTManager(app)
 
+@app.route('/', methods=['GET'])
+def home():
+    return jsonify({"message": "Welcome to the GreenThumb app!"}), 200
+
 @app.route('/register', methods=['POST'])
 def register():
     data = request.get_json()
