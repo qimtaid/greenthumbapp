@@ -10,6 +10,11 @@ class User(db.Model):
     email = db.Column(db.String(120), unique=True, nullable=False)
     password_hash = db.Column(db.String(128), nullable=False)
 
+    plants = db.relationship('Plant', backref='user', lazy=True)
+    tips = db.relationship('Tip', backref='author', lazy=True)
+    forum_posts = db.relationship('ForumPost', backref='author', lazy=True)
+    garden_layouts = db.relationship('GardenLayout', backref='user', lazy=True)
+
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
 
@@ -19,6 +24,7 @@ class User(db.Model):
 class Plant(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(64), nullable=False)
+    description = db.Column(db.Text, nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     care_schedules = db.relationship('CareSchedule', backref='plant', lazy=True)
 
