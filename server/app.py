@@ -5,6 +5,7 @@ from flask_cors import CORS
 from flask_swagger_ui import get_swaggerui_blueprint
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
 from flask_jwt_extended import JWTManager, create_access_token, create_refresh_token, jwt_required, get_jwt_identity
+from flask_cors import CORS
 from models import db, User, Plant, CareSchedule, Tip, ForumPost, GardenLayout
 
 app = Flask(__name__)
@@ -16,6 +17,8 @@ app.config['JWT_TOKEN_LOCATION'] = ['cookies']
 app.config['JWT_ACCESS_COOKIE_PATH'] = '/'
 app.config['JWT_REFRESH_COOKIE_PATH'] = '/refresh'
 app.config['JWT_COOKIE_CSRF_PROTECT'] = False
+
+CORS(app, supports_credentials=True)
 
 db.init_app(app)
 migrate = Migrate(app, db)
@@ -78,9 +81,11 @@ def login():
     
     access_token = create_access_token(identity=user.id)
     refresh_token = create_refresh_token(identity=user.id)
+
     response = make_response(jsonify(access_token=access_token, refresh_token=refresh_token), 200)
     response.set_cookie('jwt', access_token, httponly=True)
     response.set_cookie('refresh_jwt', refresh_token, httponly=True, path='/refresh')
+
     return response
 
 @app.route('/refresh', methods=['POST'])
