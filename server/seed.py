@@ -6,18 +6,18 @@ with app.app_context():
     db.create_all()
 
     # Create sample users
-    user1 = User(username='gardener1', email='gardener1@example.com')
-    user1.set_password('password1')
-    user2 = User(username='gardener2', email='gardener2@example.com')
-    user2.set_password('password2')
+    user1 = User(username='dank', email='dank@moringa.com')
+    user1.set_password('password')
+    user2 = User(username='mkulima', email='mkulima@example.com')
+    user2.set_password('shamabani')
 
     db.session.add(user1)
     db.session.add(user2)
     db.session.commit()
 
     # Create sample plants
-    plant1 = Plant(name='Tomato', user_id=user1.id)
-    plant2 = Plant(name='Basil', user_id=user2.id)
+    plant1 = Plant(name='Tomato', description='A red fruit used in many dishes.', user_id=user1.id)
+    plant2 = Plant(name='Basil', description='An aromatic herb used in cooking.', user_id=user2.id)
 
     db.session.add(plant1)
     db.session.add(plant2)
@@ -48,8 +48,16 @@ with app.app_context():
     db.session.commit()
 
     # Create sample garden layouts
-    layout1 = GardenLayout(name='My Vegetable Garden', user_id=user1.id, layout_data='{"beds": [{"name": "Bed 1", "plants": ["Tomato", "Basil"]}] }')
-    layout2 = GardenLayout(name='Herb Garden', user_id=user2.id, layout_data='{"beds": [{"name": "Bed 1", "plants": ["Basil"]}] }')
+    layout1 = GardenLayout(
+        name='My Vegetable Garden',
+        user_id=user1.id,
+        layout_data='{"beds": [{"name": "Bed 1", "plants": ["Tomato", "Basil"]}]}'
+    )
+    layout2 = GardenLayout(
+        name='Herb Garden',
+        user_id=user2.id,
+        layout_data='{"beds": [{"name": "Bed 1", "plants": ["Basil"]}]}'
+    )
 
     db.session.add(layout1)
     db.session.add(layout2)
