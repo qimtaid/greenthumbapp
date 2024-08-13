@@ -1,10 +1,12 @@
 import React from 'react';
+import { Box } from '@chakra-ui/react';
+import PhotoCarousel from './PhotoCarousel';
 
 const Home = () => {
   return (
-    <div>
-      <h1>Welcome to the Home Page</h1>
-    </div>
+    <Box>
+      <PhotoCarousel />
+    </Box>
   );
 };
 

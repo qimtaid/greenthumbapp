@@ -24,22 +24,21 @@ const Register = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const response = await register(username, email, password);
-      if (response.access_token) {
-        // Store access token and username in local storage
-        localStorage.setItem('access_token', response.access_token);
-        localStorage.setItem('username', username); // Store username
-
-        // Navigate to login page
-        navigate('/login');
-      } else {
-        alert('Registration failed. Please check your details.');
-      }
+        const response = await register(username, email, password);
+        if (response.access_token) {
+            localStorage.setItem('access_token', response.access_token);
+            localStorage.setItem('username', username); // Store username
+            navigate('/home');  // Navigate to the home page or a different route after registration
+        } else {
+            alert(response.msg || 'Registration successful, please log in.');
+            navigate('/login');
+        }
     } catch (error) {
-      console.error('Registration failed:', error);
-      alert('An error occurred during registration.');
+        console.error('Registration failed:', error);
+        alert(error.message || 'An error occurred during registration.');
     }
-  };
+};
+
 
   return (
     <Box

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import PropTypes from 'prop-types';
 import {
   Box,
   Button,
@@ -44,7 +45,7 @@ const Login = ({ onLogin }) => {
       console.error('Login failed:', error);
       alert('An error occurred during login.');
     } finally {
-      setLoading(false); 
+      setLoading(false); // Reset loading state after login attempt
     }
   };
 
@@ -97,6 +98,11 @@ const Login = ({ onLogin }) => {
       </Text>
     </Box>
   );
+};
+
+// Add propTypes for the Login component
+Login.propTypes = {
+  onLogin: PropTypes.func.isRequired,
 };
 
 export default Login;
