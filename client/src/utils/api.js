@@ -449,10 +449,14 @@ export const fetchTips = async () => {
         if (!response.ok) {
             throw new Error('Network response was not ok');
         }
-        return await response.json();
+        const data = await response.json();
+        if (data.message) {
+            throw new Error(data.message); // Use the message from the response if present
+        }
+        return data; // Assuming this is an array of tips
     } catch (error) {
         console.error('Error fetching tips:', error);
-        throw error;
+        throw error; // Re-throw error to be caught in the component
     }
 };
 

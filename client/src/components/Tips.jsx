@@ -14,9 +14,20 @@ const Tips = () => {
         const fetchAllTips = async () => {
             try {
                 const data = await fetchTips();
-                setTips(data);
+                if (Array.isArray(data)) {
+                    setTips(data);
+                } else {
+                    throw new Error('Unexpected data format');
+                }
             } catch (error) {
                 console.error('Error fetching tips:', error);
+                toast({
+                    title: 'Fetch Error',
+                    description: `Failed to fetch tips. ${error.message}`,
+                    status: 'error',
+                    duration: 5000,
+                    isClosable: true,
+                });
             }
         };
 
@@ -43,7 +54,7 @@ const Tips = () => {
         }
 
         try {
-            const newTip = { title: formTitle, content: formContent, author_id: 1 }; // Replace with actual author_id
+            const newTip = { title: formTitle, content: formContent, author_id: 1 }; // Replace with actual author_id if available
             if (editingTip) {
                 await updateTip(editingTip.id, newTip);
                 setTips(tips.map(tip => (tip.id === editingTip.id ? { ...tip, ...newTip } : tip)));
@@ -53,6 +64,7 @@ const Tips = () => {
             }
             toast({
                 title: editingTip ? 'Tip Updated' : 'Tip Added',
+                description: editingTip ? 'Your tip has been updated successfully.' : 'Your new tip has been added.',
                 status: 'success',
                 duration: 5000,
                 isClosable: true,
@@ -76,6 +88,7 @@ const Tips = () => {
             setTips(tips.filter(tip => tip.id !== id));
             toast({
                 title: 'Tip Deleted',
+                description: 'The tip has been deleted successfully.',
                 status: 'success',
                 duration: 5000,
                 isClosable: true,
@@ -98,20 +111,24 @@ const Tips = () => {
                 Add New Tip
             </Button>
             <Stack spacing={4}>
-                {tips.map(tip => (
-                    <Box key={tip.id} borderWidth={1} borderRadius="md" p={4} shadow="md">
-                        <Heading size="md">{tip.title}</Heading>
-                        <Text mt={2}>{tip.content}</Text>
-                        <Flex mt={4} justify="space-between">
-                            <Button colorScheme="blue" onClick={() => handleOpenForm(tip)}>
-                                Edit
-                            </Button>
-                            <Button colorScheme="red" onClick={() => handleDelete(tip.id)}>
-                                Delete
-                            </Button>
-                        </Flex>
-                    </Box>
-                ))}
+                {tips.length > 0 ? (
+                    tips.map(tip => (
+                        <Box key={tip.id} borderWidth={1} borderRadius="md" p={4} shadow="md">
+                            <Heading size="md">{tip.title || 'Untitled'}</Heading>
+                            <Text mt={2}>{tip.content || 'No content available'}</Text>
+                            <Flex mt={4} justify="space-between">
+                                <Button colorScheme="blue" onClick={() => handleOpenForm(tip)}>
+                                    Edit
+                                </Button>
+                                <Button colorScheme="red" onClick={() => handleDelete(tip.id)}>
+                                    Delete
+                                </Button>
+                            </Flex>
+                        </Box>
+                    ))
+                ) : (
+                    <Text>No tips available.</Text>
+                )}
             </Stack>
 
             <Modal isOpen={isOpen} onClose={onClose}>

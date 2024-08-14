@@ -207,7 +207,7 @@ def get_care_schedules(plant_id):
 # Tips Management
 @app.route('/tips', methods=['POST'])
 @jwt_required()
-def add_tips():
+def add_tip():
     data = request.get_json()
     title = data.get('title')
     content = data.get('content')
