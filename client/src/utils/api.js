@@ -149,11 +149,11 @@ export async function addPlant(formData) {
         const response = await fetch(`${API_BASE_URL}/plants`, {
             method: 'POST',
             headers: {
+                'Content-Type': 'application/json',
                 ...getAuthHeaders(),
-                // Do not manually set 'Content-Type' when using FormData
             },
             credentials: 'include',
-            body: formData,
+            body: JSON.stringify(formData),  // Send as JSON instead of FormData
         });
 
         if (!response.ok) {
@@ -166,6 +166,7 @@ export async function addPlant(formData) {
         throw error;
     }
 }
+
 
 
 // Function to update an existing plant

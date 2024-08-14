@@ -98,29 +98,26 @@ def logout():
 @app.route('/plants', methods=['POST'])
 @jwt_required()
 def add_plant():
-    name = request.form.get('name')
-    description = request.form.get('description')
+    data = request.json  # Expecting JSON data
+
+    name = data.get('name')
+    description = data.get('description')
+    img_url = data.get('img_url')
     user_id = get_jwt_identity()
-    img_url = None
 
     if not name:
         return jsonify({"error": "Plant name is required"}), 400
 
-    # Check if an image file is included in the request
-    if 'image' in request.files:
-        file = request.files['image']
-        if file and allowed_file(file.filename):
-            filename = secure_filename(file.filename)
-            file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-            file.save(file_path)
-            img_url = url_for('uploaded_file', filename=filename, _external=True)
+    if not img_url:
+        return jsonify({"error": "Image URL is required"}), 400
 
-    # Create and save the new plant record
-    new_plant = Plant(name=name, img_url=img_url, description=description, user_id=user_id)
+    # Save the plant details to the database
+    new_plant = Plant(name=name, description=description, img_url=img_url, user_id=user_id)
     db.session.add(new_plant)
     db.session.commit()
 
-    return jsonify({"msg": "Plant added successfully", "img_url": img_url}), 201
+    return jsonify({"message": "Plant added successfully"}), 201
+
 
 @app.route('/plants', methods=['GET'])
 @jwt_required()
