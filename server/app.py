@@ -1,7 +1,10 @@
-from flask import Flask, request, jsonify, make_response
+from flask import Flask, request, send_from_directory, jsonify, make_response, url_for
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_jwt_extended import JWTManager, create_access_token, create_refresh_token, jwt_required, get_jwt_identity
+from flask_cors import CORS
+from werkzeug.utils import secure_filename
+import os
 from models import db, User, Plant, CareSchedule, Tip, ForumPost, GardenLayout
 
 app = Flask(__name__)
@@ -13,10 +16,19 @@ app.config['JWT_TOKEN_LOCATION'] = ['cookies']
 app.config['JWT_ACCESS_COOKIE_PATH'] = '/'
 app.config['JWT_REFRESH_COOKIE_PATH'] = '/refresh'
 app.config['JWT_COOKIE_CSRF_PROTECT'] = False
+app.config['UPLOAD_FOLDER'] = 'uploads' 
+app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # Limit upload size to 16 MB
+
+CORS(app, supports_credentials=True)
 
 db.init_app(app)
 migrate = Migrate(app, db)
 jwt = JWTManager(app)
+
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 @app.route('/', methods=['GET'])
 def home():
@@ -60,9 +72,11 @@ def login():
     
     access_token = create_access_token(identity=user.id)
     refresh_token = create_refresh_token(identity=user.id)
+
     response = make_response(jsonify(access_token=access_token, refresh_token=refresh_token), 200)
     response.set_cookie('jwt', access_token, httponly=True)
     response.set_cookie('refresh_jwt', refresh_token, httponly=True, path='/refresh')
+
     return response
 
 @app.route('/refresh', methods=['POST'])
@@ -84,22 +98,33 @@ def logout():
 @app.route('/plants', methods=['POST'])
 @jwt_required()
 def add_plant():
-    data = request.get_json()
+    data = request.json  # Expecting JSON data
+
     name = data.get('name')
+    description = data.get('description')
+    img_url = data.get('img_url')
     user_id = get_jwt_identity()
-    
-    new_plant = Plant(name=name, user_id=user_id)
+
+    if not name:
+        return jsonify({"error": "Plant name is required"}), 400
+
+    if not img_url:
+        return jsonify({"error": "Image URL is required"}), 400
+
+    # Save the plant details to the database
+    new_plant = Plant(name=name, description=description, img_url=img_url, user_id=user_id)
     db.session.add(new_plant)
     db.session.commit()
-    
-    return jsonify({"msg": "Plant added successfully"}), 201
+
+    return jsonify({"message": "Plant added successfully"}), 201
+
 
 @app.route('/plants', methods=['GET'])
 @jwt_required()
 def get_plants():
     user_id = get_jwt_identity()
     plants = Plant.query.filter_by(user_id=user_id).all()
-    return jsonify([{"id": plant.id, "name": plant.name} for plant in plants]), 200
+    return jsonify([{"id": plant.id, "name": plant.name, "img_url": plant.img_url, "description": plant.description} for plant in plants]), 200
 
 @app.route('/plants/<int:plant_id>', methods=['PATCH'])
 @jwt_required()
@@ -113,6 +138,10 @@ def update_plant(plant_id):
     
     if 'name' in data:
         plant.name = data['name']
+    if 'img_url' in data:
+        plant.img_url = data['img_url'] 
+    if 'description' in data:
+        plant.description = data['description']
     
     db.session.commit()
     
@@ -304,6 +333,11 @@ def delete_garden_layout(layout_id):
     db.session.commit()
     
     return jsonify({"msg": "Garden layout deleted successfully"}), 200
+
+# File upload endpoint
+@app.route('/uploads/<filename>')
+def uploaded_file(filename):
+    return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
 # Debugging middleware
 @app.before_request
