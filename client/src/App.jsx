@@ -7,10 +7,13 @@ import Home from './components/Home';
 import Plants from './components/Plants';
 import CareSchedule from './components/CareSchedule';
 import Forum from './components/Forum';
-import Layout from './components/Layout';
+import Tips from './components/Tips';
+import Layouts from './components/Layouts';
 import AboutUs from './components/AboutUs';
 import Login from './components/Login';
 import Register from './components/Register';
+import FAQ from './components/FAQ';
+
 
 function App() {
   // State to track if the user is authenticated
@@ -78,12 +81,20 @@ function App() {
                 element={isAuthenticated ? <Forum /> : <Navigate to="/login" />}
               />
               <Route
+                path="/tips"
+                element={isAuthenticated ? <Tips /> : <Navigate to="/login" />}
+              />
+              <Route
                 path="/layout"
-                element={isAuthenticated ? <Layout /> : <Navigate to="/login" />}
+                element={isAuthenticated ? <Layouts /> : <Navigate to="/login" />}
               />
               <Route
                 path="/about"
                 element={isAuthenticated ? <AboutUs /> : <Navigate to="/login" />}
+              />
+              <Route
+                path="/faq"
+                element={isAuthenticated ? <FAQ /> : <Navigate to="/login" />}
               />
             </Routes>
           </Box>

@@ -1,66 +1,170 @@
 from app import app, db
-from models import User, Plant, CareSchedule, Tip, ForumPost, GardenLayout
+from models import User, Plant, CareSchedule, Tips, ForumPost, Comment, GardenLayout, ScheduleInterval, CareType
 from datetime import datetime
 
-with app.app_context():
-    db.create_all()
+def seed_database():
+    with app.app_context():
+        # Drop all tables and recreate them to ensure schema consistency
+        db.drop_all()
+        db.create_all()
 
-    # Create sample users
-    user1 = User(username='dank', email='dank@moringa.com')
-    user1.set_password('password')
-    user2 = User(username='mkulima', email='mkulima@example.com')
-    user2.set_password('shamabani')
+        # Create sample users
+        user_data = [
+            {'username': 'Riko-04', 'email': 'echoge11@gmail.com', 'password': 'Kiptoosky@04'},
+            {'username': 'testuser', 'email': 'testuser@gmail.com', 'password': 'password123'},
+            {'username': 'Dan', 'email': 'dan@moringa.com', 'password': 'SE2024'}
+        ]
+        users = {}
+        
+        for user_info in user_data:
+            user = User.query.filter_by(username=user_info['username']).first()
+            if not user:
+                user = User(username=user_info['username'], email=user_info['email'])
+                user.set_password(user_info['password'])
+                db.session.add(user)
+                users[user_info['username']] = user
+            else:
+                users[user_info['username']] = user
+        
+        db.session.commit()
 
-    db.session.add(user1)
-    db.session.add(user2)
-    db.session.commit()
+        # Create sample plants with img_url
+        plant_data = [
+            {
+                'name': 'Tomato',
+                'img_url': 'https://plus.unsplash.com/premium_photo-1669906333449-5fc2c47cd8ec?q=80&w=387&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
+                'description': 'A red, juicy fruit often used in salads and cooking.',
+                'user': 'Riko-04'
+            },
+            {
+                'name': 'Basil',
+                'img_url': 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRwl3tBPY4s-7hS8sRWGPQgeJ1DX0vBhDpMug&usqp=CAU',
+                'description': 'A fragrant herb commonly used in Italian cuisine.',
+                'user': 'testuser'
+            }
+        ]
 
-    # Create sample plants
-    plant1 = Plant(name='Tomato', description='A red fruit used in many dishes.', user_id=user1.id)
-    plant2 = Plant(name='Basil', description='An aromatic herb used in cooking.', user_id=user2.id)
+        for plant_info in plant_data:
+            user = users[plant_info['user']]
+            if user:
+                plant = Plant.query.filter_by(name=plant_info['name'], user_id=user.id).first()
+                if not plant:
+                    plant = Plant(
+                        name=plant_info['name'],
+                        img_url=plant_info['img_url'],
+                        description=plant_info['description'],
+                        user_id=user.id
+                    )
+                    db.session.add(plant)
 
-    db.session.add(plant1)
-    db.session.add(plant2)
-    db.session.commit()
+        db.session.commit()
 
-    # Create sample care schedules
-    schedule1 = CareSchedule(plant_id=plant1.id, task='Watering', schedule_date=datetime(2024, 8, 1))
-    schedule2 = CareSchedule(plant_id=plant2.id, task='Pruning', schedule_date=datetime(2024, 8, 2))
+        # Create sample care schedules
+        care_schedules = [
+            {'plant_name': 'Tomato', 'task': 'WATERING', 'schedule_date': datetime(2024, 8, 1), 'interval': 'DAILY'},
+            {'plant_name': 'Basil', 'task': 'PRUNING', 'schedule_date': datetime(2024, 8, 2), 'interval': 'WEEKLY'}
+        ]
 
-    db.session.add(schedule1)
-    db.session.add(schedule2)
-    db.session.commit()
+        for schedule_info in care_schedules:
+            plant = Plant.query.filter_by(name=schedule_info['plant_name']).first()
+            if plant:
+                schedule = CareSchedule.query.filter_by(
+                    plant_id=plant.id,
+                    task=CareType[schedule_info['task']]
+                ).first()
+                if not schedule:
+                    schedule = CareSchedule(
+                        plant_id=plant.id,
+                        task=CareType[schedule_info['task']],
+                        schedule_date=schedule_info['schedule_date'],
+                        interval=ScheduleInterval[schedule_info['interval']]
+                    )
+                    db.session.add(schedule)
 
-    # Create sample tips
-    tip1 = Tip(title='Watering Tips', content='Water your plants regularly.', author_id=user1.id)
-    tip2 = Tip(title='Pruning Tips', content='Prune your plants to promote growth.', author_id=user2.id)
+        db.session.commit()
 
-    db.session.add(tip1)
-    db.session.add(tip2)
-    db.session.commit()
+        # Create sample tips
+        tips_data = [
+            {'title': 'Watering Tips', 'content': 'Water your plants regularly.', 'author': 'Riko-04'},
+            {'title': 'Pruning Tips', 'content': 'Prune your plants to promote growth.', 'author': 'testuser'}
+        ]
 
-    # Create sample forum posts
-    post1 = ForumPost(title='Help with tomatoes', content='My tomatoes are not growing well.', author_id=user1.id)
-    post2 = ForumPost(title='Basil care', content='How do I take care of basil?', author_id=user2.id)
+        for tips_info in tips_data:
+            user = users[tips_info['author']]
+            if user:
+                tip = Tips.query.filter_by(title=tips_info['title'], author_id=user.id).first()
+                if not tip:
+                    tip = Tips(
+                        title=tips_info['title'],
+                        content=tips_info['content'],
+                        author_id=user.id
+                    )
+                    db.session.add(tip)
 
-    db.session.add(post1)
-    db.session.add(post2)
-    db.session.commit()
+        db.session.commit()
 
-    # Create sample garden layouts
-    layout1 = GardenLayout(
-        name='My Vegetable Garden',
-        user_id=user1.id,
-        layout_data='{"beds": [{"name": "Bed 1", "plants": ["Tomato", "Basil"]}]}'
-    )
-    layout2 = GardenLayout(
-        name='Herb Garden',
-        user_id=user2.id,
-        layout_data='{"beds": [{"name": "Bed 1", "plants": ["Basil"]}]}'
-    )
+        # Create sample forum posts
+        post_data = [
+            {'title': 'Help with tomatoes', 'content': 'My tomatoes are not growing well.', 'author': 'Riko-04'},
+            {'title': 'Basil care', 'content': 'How do I take care of basil?', 'author': 'testuser'}
+        ]
 
-    db.session.add(layout1)
-    db.session.add(layout2)
-    db.session.commit()
+        for post_info in post_data:
+            user = users[post_info['author']]
+            if user:
+                post = ForumPost.query.filter_by(title=post_info['title'], author_id=user.id).first()
+                if not post:
+                    post = ForumPost(
+                        title=post_info['title'],
+                        content=post_info['content'],
+                        author_id=user.id
+                    )
+                    db.session.add(post)
 
-    print("Database seeded successfully!")
+        db.session.commit()
+
+        # Create sample comments
+        comment_data = [
+            {'post_title': 'Help with tomatoes', 'content': 'Try adjusting the soil pH.', 'author': 'testuser'},
+            {'post_title': 'Basil care', 'content': 'Make sure it gets plenty of sunlight.', 'author': 'Riko-04'}
+        ]
+
+        for comment_info in comment_data:
+            user = users[comment_info['author']]
+            post = ForumPost.query.filter_by(title=comment_info['post_title']).first()
+            if user and post:
+                comment = Comment.query.filter_by(content=comment_info['content'], post_id=post.id, author_id=user.id).first()
+                if not comment:
+                    comment = Comment(
+                        content=comment_info['content'],
+                        post_id=post.id,
+                        author_id=user.id
+                    )
+                    db.session.add(comment)
+
+        db.session.commit()
+
+        # Create sample garden layouts
+        layout_data = [
+            {'name': 'My Vegetable Garden', 'user': 'Riko-04', 'layout_data': '{"beds": [{"name": "Bed 1", "plants": ["Tomato", "Basil"]}]}'},
+            {'name': 'Herb Garden', 'user': 'testuser', 'layout_data': '{"beds": [{"name": "Bed 1", "plants": ["Basil"]}]}'}
+        ]
+
+        for layout_info in layout_data:
+            user = users[layout_info['user']]
+            if user:
+                layout = GardenLayout.query.filter_by(name=layout_info['name'], user_id=user.id).first()
+                if not layout:
+                    layout = GardenLayout(
+                        name=layout_info['name'],
+                        user_id=user.id,
+                        layout_data=layout_info['layout_data']
+                    )
+                    db.session.add(layout)
+
+        db.session.commit()
+
+        print("Database seeded successfully!")
+
+if __name__ == '__main__':
+    seed_database()

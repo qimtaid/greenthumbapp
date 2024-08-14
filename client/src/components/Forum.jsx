@@ -1,210 +1,325 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
 import {
   Box,
   Button,
-  Heading,
-  Text,
-  Stack,
-  Divider,
+  Table,
+  Thead,
+  Tbody,
+  Tr,
+  Th,
+  Td,
+  TableCaption,
+  Modal,
+  ModalOverlay,
+  ModalContent,
+  ModalHeader,
+  ModalBody,
+  ModalFooter,
   FormControl,
+  FormLabel,
   Input,
   Textarea,
-  useColorModeValue,
-  VStack,
-  HStack,
+  useDisclosure,
   IconButton,
+  useToast,
+  Text,
 } from '@chakra-ui/react';
-import { EditIcon, DeleteIcon } from '@chakra-ui/icons';
+import { FaEdit, FaTrash } from 'react-icons/fa';
+import { 
+  fetchForumPosts, 
+  addForumPost, 
+  updateForumPost, 
+  deleteForumPost, 
+  fetchComments, 
+  addComment
+} from '../utils/api'; // Adjust the import
 
 const Forum = () => {
   const [posts, setPosts] = useState([]);
+  const [currentPost, setCurrentPost] = useState(null);
   const [newPost, setNewPost] = useState({ title: '', content: '' });
-  const [editingPostId, setEditingPostId] = useState(null);
+  const [newComment, setNewComment] = useState('');
+  const [comments, setComments] = useState([]);
+  const [selectedPostId, setSelectedPostId] = useState(null);
+
+  const { 
+    isOpen: isPostAddModalOpen, 
+    onOpen: onPostAddOpen, 
+    onClose: onPostAddClose 
+  } = useDisclosure();
+
+  const { 
+    isOpen: isPostEditModalOpen, 
+    onOpen: onPostEditOpen, 
+    onClose: onPostEditClose 
+  } = useDisclosure();
+
+  const { 
+    isOpen: isPostDeleteModalOpen, 
+    onOpen: onPostDeleteOpen, 
+    onClose: onPostDeleteClose 
+  } = useDisclosure();
+
+  const { 
+    isOpen: isCommentAddModalOpen, 
+    onOpen: onCommentAddOpen, 
+    onClose: onCommentAddClose 
+  } = useDisclosure();
+
+  const toast = useToast();
 
   useEffect(() => {
-    fetchPosts();
+    fetchData();
   }, []);
 
-  const fetchPosts = () => {
-    axios.get('http://127.0.0.1:5000/forum_post')
-      .then(response => setPosts(response.data))
-      .catch(error => console.error('Error fetching forum posts:', error));
-  };
-
-  const handleAddPost = () => {
-    axios.post('http://127.0.0.1:5000/forum_post', newPost)
-      .then(response => {
-        setPosts([...posts, response.data]);
-        setNewPost({ title: '', content: '' });
-      })
-      .catch(error => console.error('Error adding post:', error));
-  };
-
-  const handleEditPost = (postId) => {
-    axios.put(`http://127.0.0.1:5000/forum_post/${postId}`, newPost)
-      .then(response => {
-        setPosts(posts.map(post =>
-          post.id === postId ? response.data : post
-        ));
-        setEditingPostId(null);
-        setNewPost({ title: '', content: '' });
-      })
-      .catch(error => console.error('Error editing post:', error));
-  };
-
-  const handleDeletePost = (postId) => {
-    axios.delete(`http://127.0.0.1:5000/forum_post/${postId}`)
-      .then(() => {
-        setPosts(posts.filter(post => post.id !== postId));
-      })
-      .catch(error => console.error('Error deleting post:', error));
-  };
-
-  const handleCommentSubmit = (postId, comment) => {
-    axios.post(`http://127.0.0.1:5000/forum_post/${postId}/comments`, { content: comment })
-      .then(response => {
-        setPosts(posts.map(post =>
-          post.id === postId ? { ...post, comments: [...post.comments, response.data] } : post
-        ));
-      })
-      .catch(error => console.error('Error submitting comment:', error));
-  };
-
-  const handleReaction = (postId, type) => {
-    axios.post(`http://127.0.0.1:5000/forum_post/${postId}/reactions`, { type })
-      .then(response => {
-        setPosts(posts.map(post =>
-          post.id === postId ? { ...post, reactions: response.data.reactions } : post
-        ));
-      })
-      .catch(error => console.error('Error reacting to post:', error));
-  };
-
-  const bgColor = useColorModeValue('white', 'gray.800');
-  const textColor = useColorModeValue('gray.800', 'white');
-
-  return (
-    <Box maxW="4xl" mx="auto" mt={10} p={4}>
-      <Heading mb={6} textAlign="center">Forum</Heading>
-
-      <Box mb={8} p={5} shadow="md" borderWidth="1px" borderRadius="lg" bg={bgColor}>
-        <Heading fontSize="lg" mb={4} color={textColor}>Add New Post</Heading>
-        <FormControl mb={4}>
-          <Input
-            placeholder="Post Title"
-            value={newPost.title}
-            onChange={(e) => setNewPost({ ...newPost, title: e.target.value })}
-            mb={2}
-          />
-          <Textarea
-            placeholder="Post Content"
-            value={newPost.content}
-            onChange={(e) => setNewPost({ ...newPost, content: e.target.value })}
-          />
-        </FormControl>
-        <Button onClick={editingPostId ? () => handleEditPost(editingPostId) : handleAddPost} colorScheme="teal">
-          {editingPostId ? 'Save Changes' : 'Add Post'}
-        </Button>
-      </Box>
-
-      <VStack spacing={6} align="stretch">
-        {posts.map(post => (
-          <Box
-            key={post.id}
-            p={5}
-            shadow="md"
-            borderWidth="1px"
-            borderRadius="lg"
-            bg={bgColor}
-          >
-            <HStack justify="space-between">
-              <Heading fontSize="xl" mb={2} color={textColor}>{post.title}</Heading>
-              <HStack>
-                <IconButton
-                  icon={<EditIcon />}
-                  onClick={() => {
-                    setEditingPostId(post.id);
-                    setNewPost({ title: post.title, content: post.content });
-                  }}
-                  size="sm"
-                />
-                <IconButton
-                  icon={<DeleteIcon />}
-                  onClick={() => handleDeletePost(post.id)}
-                  size="sm"
-                />
-              </HStack>
-            </HStack>
-            <Text mb={4} color={textColor}>{post.content}</Text>
-            <Text fontSize="sm" mb={4} color={textColor}>Posted by: {post.author.username}</Text>
-
-            <HStack spacing={4} mb={4}>
-              <Button onClick={() => handleReaction(post.id, 'like')} colorScheme="teal" size="sm">
-                Like
-              </Button>
-              <Button onClick={() => handleReaction(post.id, 'dislike')} colorScheme="red" size="sm">
-                Dislike
-              </Button>
-              <Text color={textColor}>
-                {post.reactions.like} Likes | {post.reactions.dislike} Dislikes
-              </Text>
-            </HStack>
-
-            <Divider mb={4} />
-
-            <Box>
-              <Heading fontSize="md" mb={3} color={textColor}>Comments</Heading>
-              <VStack spacing={3} align="stretch">
-                {post.comments.map(comment => (
-                  <Text key={comment.id} color={textColor}>
-                    <strong>{comment.author.username}:</strong> {comment.content}
-                  </Text>
-                ))}
-              </VStack>
-            </Box>
-
-            <CommentForm postId={post.id} onSubmit={handleCommentSubmit} />
-          </Box>
-        ))}
-      </VStack>
-    </Box>
-  );
-};
-
-const CommentForm = ({ postId, onSubmit }) => {
-  const [comment, setComment] = useState('');
-  const bgColor = useColorModeValue('gray.100', 'gray.700');
-  const textColor = useColorModeValue('gray.800', 'white');
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (comment.trim()) {
-      onSubmit(postId, comment);
-      setComment('');
+  const fetchData = async () => {
+    try {
+      const postData = await fetchForumPosts();
+      setPosts(postData);
+    } catch (error) {
+      console.error('Error fetching posts:', error);
+      toast({ title: 'Error fetching posts', status: 'error' });
     }
   };
 
+  const handleAddPost = async () => {
+    try {
+      await addForumPost(newPost);
+      toast({ title: 'Post added', status: 'success' });
+      setNewPost({ title: '', content: '' });
+      onPostAddClose();
+      fetchData();
+    } catch (error) {
+      console.error('Error adding post:', error);
+      toast({ title: 'Error adding post', status: 'error' });
+    }
+  };
+
+  const handleUpdatePost = async () => {
+    try {
+      await updateForumPost(currentPost.id, currentPost);
+      toast({ title: 'Post updated', status: 'success' });
+      setCurrentPost(null);
+      onPostEditClose();
+      fetchData();
+    } catch (error) {
+      console.error('Error updating post:', error);
+      toast({ title: 'Error updating post', status: 'error' });
+    }
+  };
+
+  const handleDeletePost = async () => {
+    try {
+      await deleteForumPost(currentPost.id);
+      toast({ title: 'Post deleted', status: 'success' });
+      setCurrentPost(null);
+      onPostDeleteClose();
+      fetchData();
+    } catch (error) {
+      console.error('Error deleting post:', error);
+      toast({ title: 'Error deleting post', status: 'error' });
+    }
+  };
+
+  const handleAddComment = async () => {
+    try {
+      await addComment(selectedPostId, { content: newComment });
+      toast({ title: 'Comment added', status: 'success' });
+      setNewComment('');
+      onCommentAddClose();
+      fetchCommentsData(selectedPostId);
+    } catch (error) {
+      console.error('Error adding comment:', error);
+      toast({ title: 'Error adding comment', status: 'error' });
+    }
+  };
+
+  const fetchCommentsData = async (postId) => {
+    try {
+      const commentData = await fetchComments(postId);
+      setComments(commentData);
+    } catch (error) {
+      console.error('Error fetching comments:', error);
+      toast({ title: 'Error fetching comments', status: 'error' });
+    }
+  };
+
+  const openPostEditModal = (post) => {
+    setCurrentPost(post);
+    onPostEditOpen();
+  };
+
+  const openPostDeleteModal = (post) => {
+    setCurrentPost(post);
+    onPostDeleteOpen();
+  };
+
+  const openCommentAddModal = (postId) => {
+    setSelectedPostId(postId);
+    fetchCommentsData(postId);
+    onCommentAddOpen();
+  };
+
   return (
-    <Box as="form" mt={4} onSubmit={handleSubmit}>
-      <FormControl>
-        <Input
-          type="text"
-          value={comment}
-          onChange={e => setComment(e.target.value)}
-          placeholder="Add a comment..."
-          bg={bgColor}
-          color={textColor}
-        />
-      </FormControl>
-      <Button
-        mt={2}
-        colorScheme="teal"
-        type="submit"
-        size="sm"
-      >
-        Submit
+    <Box p={4}>
+      <Button mb={4} colorScheme="teal" onClick={onPostAddOpen}>
+        Add Post
       </Button>
+
+      <Table variant="simple">
+        <TableCaption>Forum Posts</TableCaption>
+        <Thead>
+          <Tr>
+            <Th>Title</Th>
+            <Th>Content</Th>
+            <Th>Actions</Th>
+          </Tr>
+        </Thead>
+        <Tbody>
+          {posts.length > 0 ? (
+            posts.map((post) => (
+              <Tr key={post.id}>
+                <Td>{post.title}</Td>
+                <Td>{post.content}</Td>
+                <Td>
+                  <Button colorScheme="blue" onClick={() => openCommentAddModal(post.id)}>
+                    Comments
+                  </Button>
+                  <IconButton
+                    aria-label="Edit post"
+                    icon={<FaEdit />}
+                    colorScheme="teal"
+                    onClick={() => openPostEditModal(post)}
+                    mr={2}
+                  />
+                  <IconButton
+                    aria-label="Delete post"
+                    icon={<FaTrash />}
+                    colorScheme="red"
+                    onClick={() => openPostDeleteModal(post)}
+                  />
+                </Td>
+              </Tr>
+            ))
+          ) : (
+            <Tr>
+              <Td colSpan="3">No posts found</Td>
+            </Tr>
+          )}
+        </Tbody>
+      </Table>
+
+      {/* Add Post Modal */}
+      <Modal isOpen={isPostAddModalOpen} onClose={onPostAddClose}>
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader>Add New Post</ModalHeader>
+          <ModalBody>
+            <FormControl>
+              <FormLabel>Title</FormLabel>
+              <Input
+                value={newPost.title}
+                onChange={(e) => setNewPost({ ...newPost, title: e.target.value })}
+              />
+              <FormLabel mt={4}>Content</FormLabel>
+              <Textarea
+                value={newPost.content}
+                onChange={(e) => setNewPost({ ...newPost, content: e.target.value })}
+              />
+            </FormControl>
+          </ModalBody>
+          <ModalFooter>
+            <Button colorScheme="teal" mr={3} onClick={handleAddPost}>
+              Add Post
+            </Button>
+            <Button onClick={onPostAddClose}>Cancel</Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+
+      {/* Edit Post Modal */}
+      <Modal isOpen={isPostEditModalOpen} onClose={onPostEditClose}>
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader>Edit Post</ModalHeader>
+          <ModalBody>
+            <FormControl>
+              <FormLabel>Title</FormLabel>
+              <Input
+                value={currentPost?.title || ''}
+                onChange={(e) => setCurrentPost({ ...currentPost, title: e.target.value })}
+              />
+              <FormLabel mt={4}>Content</FormLabel>
+              <Textarea
+                value={currentPost?.content || ''}
+                onChange={(e) => setCurrentPost({ ...currentPost, content: e.target.value })}
+              />
+            </FormControl>
+          </ModalBody>
+          <ModalFooter>
+            <Button colorScheme="teal" mr={3} onClick={handleUpdatePost}>
+              Update Post
+            </Button>
+            <Button onClick={onPostEditClose}>Cancel</Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+
+      {/* Delete Post Modal */}
+      <Modal isOpen={isPostDeleteModalOpen} onClose={onPostDeleteClose}>
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader>Delete Post</ModalHeader>
+          <ModalBody>
+            Are you sure you want to delete this post?
+          </ModalBody>
+          <ModalFooter>
+            <Button colorScheme="red" mr={3} onClick={handleDeletePost}>
+              Delete
+            </Button>
+            <Button onClick={onPostDeleteClose}>Cancel</Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+
+      {/* Add Comment Modal */}
+      <Modal isOpen={isCommentAddModalOpen} onClose={onCommentAddClose}>
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader>Add Comment</ModalHeader>
+          <ModalBody>
+            <FormControl>
+              <FormLabel>Comment</FormLabel>
+              <Textarea
+                value={newComment}
+                onChange={(e) => setNewComment(e.target.value)}
+              />
+            </FormControl>
+          </ModalBody>
+          <ModalFooter>
+            <Button colorScheme="teal" mr={3} onClick={handleAddComment}>
+              Add Comment
+            </Button>
+            <Button onClick={onCommentAddClose}>Cancel</Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+
+      {/* Comments Section */}
+      {selectedPostId && (
+        <Box mt={6}>
+          <Text fontSize="lg" mb={4}>Comments</Text>
+          {comments.length > 0 ? (
+            comments.map((comment) => (
+              <Box key={comment.id} borderWidth="1px" borderRadius="md" p={4} mb={2}>
+                <Text>{comment.content}</Text>
+              </Box>
+            ))
+          ) : (
+            <Text>No comments yet.</Text>
+          )}
+        </Box>
+      )}
     </Box>
   );
 };

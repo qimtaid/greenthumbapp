@@ -1,12 +1,12 @@
-from flask import Flask, request, jsonify, make_response
+from flask import Flask, request, send_from_directory, jsonify, make_response, url_for
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
-from flask_cors import CORS
-from flask_swagger_ui import get_swaggerui_blueprint
-from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
 from flask_jwt_extended import JWTManager, create_access_token, create_refresh_token, jwt_required, get_jwt_identity
 from flask_cors import CORS
-from models import db, User, Plant, CareSchedule, Tip, ForumPost, GardenLayout
+from werkzeug.utils import secure_filename
+import os
+from datetime import datetime
+from models import db, User, Plant, CareSchedule, Tips, ForumPost, GardenLayout, Comment  # Ensure Comment model is imported
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///greenthumb.db'
@@ -17,27 +17,41 @@ app.config['JWT_TOKEN_LOCATION'] = ['cookies']
 app.config['JWT_ACCESS_COOKIE_PATH'] = '/'
 app.config['JWT_REFRESH_COOKIE_PATH'] = '/refresh'
 app.config['JWT_COOKIE_CSRF_PROTECT'] = False
+app.config['UPLOAD_FOLDER'] = 'uploads'
+app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # Limit upload size to 16 MB
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 
 CORS(app, supports_credentials=True)
 
 db.init_app(app)
 migrate = Migrate(app, db)
 jwt = JWTManager(app)
-CORS(app)
 
-SWAGGER_URL = '/api/docs'
-API_URL = '/static/swagger.json'
+# Remove Flask-Mail configuration
+# app.config['MAIL_SERVER'] = 'smtp.gmail.com'
+# app.config['MAIL_PORT'] = 587
+# app.config['MAIL_USERNAME'] = 'tuvibestu@gmail.com'
+# app.config['MAIL_PASSWORD'] = '@tracy31'
+# app.config['MAIL_USE_TLS'] = True
+# app.config['MAIL_USE_SSL'] = False
 
-swaggerui_blueprint = get_swaggerui_blueprint(
-    SWAGGER_URL,
-    API_URL,
-    config={
-        'app_name': "GreenThumb API"
-    }
-)
+# Remove Mail initialization
+# mail = Mail(app)
 
-app.register_blueprint(swaggerui_blueprint)
+def check_due_schedules():
+    with app.app_context():
+        due_schedules = CareSchedule.query.filter(CareSchedule.is_due()).all()
+        for schedule in due_schedules:
+            user = User.query.get(schedule.plant.user_id)
+            if user:
+                # Implement logic to notify user within the app
+                # Example: Save notification or update status in the database
+                pass  # Implement in-app notification handling here
 
+
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 @app.route('/', methods=['GET'])
 def home():
@@ -72,11 +86,9 @@ def login():
     user = User.query.filter_by(email=email).first()
     
     if user is None:
-        print("User not found")  # Debug statement
         return jsonify({"msg": "User not found"}), 401
     
     if not user.check_password(password):
-        print("Invalid password")  # Debug statement
         return jsonify({"msg": "Invalid password"}), 401
     
     access_token = create_access_token(identity=user.id)
@@ -107,22 +119,36 @@ def logout():
 @app.route('/plants', methods=['POST'])
 @jwt_required()
 def add_plant():
-    data = request.get_json()
-    name = data.get('name')
+    name = request.form.get('name')
+    description = request.form.get('description')
     user_id = get_jwt_identity()
-    
-    new_plant = Plant(name=name, user_id=user_id)
+    img_url = None
+
+    if not name:
+        return jsonify({"error": "Plant name is required"}), 400
+
+    # Check if an image file is included in the request
+    if 'image' in request.files:
+        file = request.files['image']
+        if file and allowed_file(file.filename):
+            filename = secure_filename(file.filename)
+            file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            file.save(file_path)
+            img_url = url_for('uploaded_file', filename=filename, _external=True)
+
+    # Create and save the new plant record
+    new_plant = Plant(name=name, img_url=img_url, description=description, user_id=user_id)
     db.session.add(new_plant)
     db.session.commit()
-    
-    return jsonify({"msg": "Plant added successfully"}), 201
+
+    return jsonify({"msg": "Plant added successfully", "img_url": img_url}), 201
 
 @app.route('/plants', methods=['GET'])
 @jwt_required()
 def get_plants():
     user_id = get_jwt_identity()
     plants = Plant.query.filter_by(user_id=user_id).all()
-    return jsonify([{"id": plant.id, "name": plant.name} for plant in plants]), 200
+    return jsonify([{"id": plant.id, "name": plant.name, "img_url": plant.img_url, "description": plant.description} for plant in plants]), 200
 
 @app.route('/plants/<int:plant_id>', methods=['PATCH'])
 @jwt_required()
@@ -136,6 +162,10 @@ def update_plant(plant_id):
     
     if 'name' in data:
         plant.name = data['name']
+    if 'img_url' in data:
+        plant.img_url = data['img_url'] 
+    if 'description' in data:
+        plant.description = data['description']
     
     db.session.commit()
     
@@ -174,33 +204,34 @@ def get_care_schedules(plant_id):
     return jsonify([{"id": schedule.id, "task": schedule.task, "schedule_date": schedule.schedule_date} for schedule in schedules]), 200
 
 # Tips Management
+# Tips Management
 @app.route('/tips', methods=['POST'])
 @jwt_required()
-def add_tip():
+def add_tips():
     data = request.get_json()
     title = data.get('title')
     content = data.get('content')
     author_id = get_jwt_identity()
-    new_tip = Tip(title=title, content=content, author_id=author_id)
-    db.session.add(new_tip)
+    new_tip = Tips(title=title, content=content, author_id=author_id)  # Updated variable name
+    db.session.add(new_tip)  # Updated variable name
     db.session.commit()
     return jsonify({"msg": "Tip added successfully"}), 201
 
 @app.route('/tips', methods=['GET'])
 def get_tips():
-    tips = Tip.query.all()
-    return jsonify([{"id": tip.id, "title": tip.title, "content": tip.content} for tip in tips]), 200
+    tips = Tips.query.all()
+    return jsonify([{"id": tip.id, "title": tip.title, "content": tip.content, "author_id": tip.author_id} for tip in tips]), 200
 
 @app.route('/tips/<int:tip_id>', methods=['PATCH'])
 @jwt_required()
 def update_tip(tip_id):
     data = request.get_json()
-    tip = Tip.query.get_or_404(tip_id)
+    tip = Tips.query.get_or_404(tip_id)  # Corrected variable name
     user_id = get_jwt_identity()
-    
+
     if tip.author_id != user_id:
         return jsonify({"msg": "Unauthorized"}), 403
-    
+
     if 'title' in data:
         tip.title = data['title']
     if 'content' in data:
@@ -213,21 +244,22 @@ def update_tip(tip_id):
 @app.route('/tips/<int:tip_id>', methods=['DELETE'])
 @jwt_required()
 def delete_tip(tip_id):
-    tip = Tip.query.get_or_404(tip_id)
+    tip = Tips.query.get_or_404(tip_id)  # Corrected variable name
     user_id = get_jwt_identity()
-    
+
     if tip.author_id != user_id:
         return jsonify({"msg": "Unauthorized"}), 403
     
-    db.session.delete(tip)
+    db.session.delete(tip)  # Corrected variable name
     db.session.commit()
     
     return jsonify({"msg": "Tip deleted successfully"}), 200
 
-# Forum Post Management
+
+# Forum Posts Management
 @app.route('/forum', methods=['POST'])
 @jwt_required()
-def add_forum_post():
+def create_post():
     data = request.get_json()
     title = data.get('title')
     content = data.get('content')
@@ -235,23 +267,23 @@ def add_forum_post():
     new_post = ForumPost(title=title, content=content, author_id=author_id)
     db.session.add(new_post)
     db.session.commit()
-    return jsonify({"msg": "Forum post added successfully"}), 201
+    return jsonify({"msg": "Post created successfully"}), 201
 
 @app.route('/forum', methods=['GET'])
-def get_forum_posts():
+def get_posts():
     posts = ForumPost.query.all()
-    return jsonify([{"id": post.id, "title": post.title, "content": post.content} for post in posts]), 200
+    return jsonify([{"id": post.id, "title": post.title, "content": post.content, "author_id": post.author_id} for post in posts]), 200
 
 @app.route('/forum/<int:post_id>', methods=['PATCH'])
 @jwt_required()
-def update_forum_post(post_id):
+def update_post(post_id):
     data = request.get_json()
     post = ForumPost.query.get_or_404(post_id)
     user_id = get_jwt_identity()
-    
+
     if post.author_id != user_id:
         return jsonify({"msg": "Unauthorized"}), 403
-    
+
     if 'title' in data:
         post.title = data['title']
     if 'content' in data:
@@ -259,85 +291,84 @@ def update_forum_post(post_id):
     
     db.session.commit()
     
-    return jsonify({"msg": "Forum post updated successfully"}), 200
+    return jsonify({"msg": "Post updated successfully"}), 200
 
 @app.route('/forum/<int:post_id>', methods=['DELETE'])
 @jwt_required()
-def delete_forum_post(post_id):
+def delete_post(post_id):
     post = ForumPost.query.get_or_404(post_id)
     user_id = get_jwt_identity()
-    
+
     if post.author_id != user_id:
         return jsonify({"msg": "Unauthorized"}), 403
     
     db.session.delete(post)
     db.session.commit()
     
-    return jsonify({"msg": "Forum post deleted successfully"}), 200
+    return jsonify({"msg": "Post deleted successfully"}), 200
 
-# Garden Layout Management
-@app.route('/layouts', methods=['POST'])
+# Forum Comments Management
+@app.route('/forum/<int:post_id>/comments', methods=['POST'])
 @jwt_required()
-def add_garden_layout():
+def add_comment(post_id):
     data = request.get_json()
-    name = data.get('name')
-    layout_data = data.get('layout_data')
-    user_id = get_jwt_identity()
-    new_layout = GardenLayout(name=name, user_id=user_id, layout_data=layout_data)
-    db.session.add(new_layout)
+    content = data.get('content')
+    author_id = get_jwt_identity()
+    new_comment = Comment(content=content, post_id=post_id, author_id=author_id)
+    db.session.add(new_comment)
     db.session.commit()
-    return jsonify({"msg": "Garden layout added successfully"}), 201
+    return jsonify({"msg": "Comment added successfully"}), 201
 
-@app.route('/layouts', methods=['GET'])
-@jwt_required()
-def get_garden_layouts():
-    user_id = get_jwt_identity()
-    layouts = GardenLayout.query.filter_by(user_id=user_id).all()
-    return jsonify([{"id": layout.id, "name": layout.name, "layout_data": layout.layout_data} for layout in layouts]), 200
+@app.route('/forum/<int:post_id>/comments', methods=['GET'])
+def get_comments(post_id):
+    comments = Comment.query.filter_by(post_id=post_id).all()
+    return jsonify([{"id": comment.id, "content": comment.content, "author_id": comment.author_id} for comment in comments]), 200
 
-@app.route('/layouts/<int:layout_id>', methods=['PATCH'])
+@app.route('/forum/comments/<int:comment_id>', methods=['PATCH'])
 @jwt_required()
-def update_garden_layout(layout_id):
+def update_comment(comment_id):
     data = request.get_json()
-    layout = GardenLayout.query.get_or_404(layout_id)
+    comment = Comment.query.get_or_404(comment_id)
     user_id = get_jwt_identity()
+
+    if comment.author_id != user_id:
+        return jsonify({"msg": "Unauthorized"}), 403
+
+    if 'content' in data:
+        comment.content = data['content']
     
-    if layout.user_id != user_id:
+    db.session.commit()
+    
+    return jsonify({"msg": "Comment updated successfully"}), 200
+
+@app.route('/forum/comments/<int:comment_id>', methods=['DELETE'])
+@jwt_required()
+def delete_comment(comment_id):
+    comment = Comment.query.get_or_404(comment_id)
+    user_id = get_jwt_identity()
+
+    if comment.author_id != user_id:
         return jsonify({"msg": "Unauthorized"}), 403
     
-    if 'name' in data:
-        layout.name = data['name']
-    if 'layout_data' in data:
-        layout.layout_data = data['layout_data']
-    
+    db.session.delete(comment)
     db.session.commit()
     
-    return jsonify({"msg": "Garden layout updated successfully"}), 200
+    return jsonify({"msg": "Comment deleted successfully"}), 200
 
-@app.route('/layouts/<int:layout_id>', methods=['DELETE'])
+@app.route('/uploads/<filename>', methods=['GET'])
+def uploaded_file(filename):
+    return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
+
+@app.route('/profile', methods=['GET'])
 @jwt_required()
-def delete_garden_layout(layout_id):
-    layout = GardenLayout.query.get_or_404(layout_id)
+def get_profile():
     user_id = get_jwt_identity()
-    
-    if layout.user_id != user_id:
-        return jsonify({"msg": "Unauthorized"}), 403
-    
-    db.session.delete(layout)
-    db.session.commit()
-    
-    return jsonify({"msg": "Garden layout deleted successfully"}), 200
-
-# Debugging middleware
-@app.before_request
-def log_request_info():
-    app.logger.debug('Headers: %s', request.headers)
-    app.logger.debug('Body: %s', request.get_data())
-
-@app.after_request
-def log_response_info(response):
-    app.logger.debug('Response: %s', response.get_data())
-    return response
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify({"msg": "User not found"}), 404
+    return jsonify({"username": user.username, "email": user.email}), 200
 
 if __name__ == '__main__':
-    app.run()
+    if not os.path.exists(app.config['UPLOAD_FOLDER']):
+        os.makedirs(app.config['UPLOAD_FOLDER'])
+    app.run(debug=True)
