@@ -67,7 +67,7 @@ const Navbar = ({ isAuthenticated, onLogout }) => {
           <HStack spacing={4} display={{ base: 'none', md: 'flex' }} flex="1" justify="center">
             <Link as={RouterLink} to="/home" color={linkColor}>Home</Link>
             <Link as={RouterLink} to="/plants" color={linkColor}>Plants</Link>
-            <Link as={RouterLink} to="/careschedule" color={linkColor}>Care Schedule</Link>
+            <Link as={RouterLink} to="/care_schedules" color={linkColor}>Care Schedule</Link>
             <Link as={RouterLink} to="/forum" color={linkColor}>Forum</Link>
             <Link as={RouterLink} to="/tips" color={linkColor}>Tips</Link>
             <Link as={RouterLink} to="/layout" color={linkColor}>Layout</Link>
@@ -109,7 +109,7 @@ const Navbar = ({ isAuthenticated, onLogout }) => {
               >
                 <Link as={RouterLink} to="/home" color={linkColor} onClick={() => handleNavigation('/home')}>Home</Link>
                 <Link as={RouterLink} to="/plants" color={linkColor} onClick={() => handleNavigation('/plants')}>Plants</Link>
-                <Link as={RouterLink} to="/careschedule" color={linkColor} onClick={() => handleNavigation('/careschedule')}>Care Schedule</Link>
+                <Link as={RouterLink} to="/care_schedules" color={linkColor} onClick={() => handleNavigation('/care_schedules')}>Care Schedule</Link>
                 <Link as={RouterLink} to="/forum" color={linkColor} onClick={() => handleNavigation('/forum')}>Forum</Link>
                 <Link as={RouterLink} to="/tips" color={linkColor} onClick={() => handleNavigation('/tips')}>Tips</Link>
                 <Link as={RouterLink} to="/layout" color={linkColor} onClick={() => handleNavigation('/layout')}>Layout</Link>

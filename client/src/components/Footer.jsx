@@ -9,6 +9,8 @@ const Footer = () => {
       color={useColorModeValue('gray.600', 'white')}
       py={4}
       width="100%"
+      position="fixed"
+      bottom="0"
       textAlign="center"
     >
       <Text>&copy; {new Date().getFullYear()} GreenThumb. All rights reserved.</Text>

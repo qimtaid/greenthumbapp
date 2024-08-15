@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+// src/components/Register.jsx
 import {
   Box,
   Button,
@@ -6,39 +6,53 @@ import {
   FormLabel,
   Input,
   Heading,
-  Text,
-  Link,
-  useColorModeValue,
+  useColorModeValue
 } from '@chakra-ui/react';
-import { register } from '../utils/api';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 const Register = () => {
-  const [username, setUsername] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const navigate = useNavigate();
   const bgColor = useColorModeValue('gray.100', 'gray.700');
   const color = useColorModeValue('black', 'white');
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    try {
-        const response = await register(username, email, password);
-        if (response.access_token) {
-            localStorage.setItem('access_token', response.access_token);
-            localStorage.setItem('username', username); // Store username
-            navigate('/home');  // Navigate to the home page or a different route after registration
-        } else {
-            alert(response.msg || 'Registration successful, please log in.');
-            navigate('/login');
-        }
-    } catch (error) {
-        console.error('Registration failed:', error);
-        alert(error.message || 'An error occurred during registration.');
-    }
-};
+  const[username, setUsername] = useState("")
+  const[email, setEmail]= useState("")
+  const[password, setPassword] = useState("")
+  const navigate = useNavigate()
 
+  const handleRegisterUser = (e) => {
+    e.preventDefault()
+
+    const userDetails = {
+      username: username,
+      email: email,
+      password: password
+    }
+
+    fetch('http://127.0.0.1:5000/register', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(userDetails)
+    })
+    .then((response) => {
+      console.log("Server response status:", response.status);
+      if (!response.ok) {
+        console.error("Sign Up failed");
+        throw new Error("Sign Up failed");
+      }
+      return response.json();
+    })
+    .then((result) => {
+      console.log(result);
+      navigate("/login")
+      return "Successfully signed up. You can now Log in.";
+    })
+    .catch((err)=>{
+      console.error(err);
+    });
+  }
 
   return (
     <Box
@@ -53,44 +67,23 @@ const Register = () => {
       boxShadow="lg"
     >
       <Heading mb={6} textAlign="center">Register</Heading>
-      <form onSubmit={handleSubmit}>
+      <form onSubmit={handleRegisterUser}>
         <FormControl mb={4}>
           <FormLabel>Username</FormLabel>
-          <Input
-            type="text"
-            placeholder="Enter your username"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            required
-          />
+          <Input type="text" value={username} onChange={(e)=>setUsername(e.target.value)} placeholder="Enter your username" />
         </FormControl>
         <FormControl mb={4}>
           <FormLabel>Email</FormLabel>
-          <Input
-            type="email"
-            placeholder="Enter your email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-          />
+          <Input type="email" value={email} onChange={(e)=>setEmail(e.target.value)} placeholder="Enter your email" />
         </FormControl>
         <FormControl mb={4}>
           <FormLabel>Password</FormLabel>
-          <Input
-            type="password"
-            placeholder="Enter your password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-          />
+          <Input type="password" value={password} onChange={(e)=>setPassword(e.target.value)} placeholder="Enter your password" />
         </FormControl>
         <Button colorScheme="teal" type="submit" width="full" mt={4}>
           Register
         </Button>
       </form>
-      <Text mt={4} textAlign="center">
-        Already have an account? <Link color="teal.500" onClick={() => navigate('/login')}>Sign in</Link>
-      </Text>
     </Box>
   );
 };

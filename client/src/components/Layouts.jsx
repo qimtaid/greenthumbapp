@@ -67,7 +67,7 @@ const Layouts = () => {
                 name: layoutName,
                 plants: layout
             };
-            await saveLayout(layoutData); // Ensure saveLayout is defined and exported correctly
+            await saveLayout(layoutData); 
             toast({ title: 'Layout saved successfully!', status: 'success' });
             setLayout([]);
             setLayoutName('');
@@ -78,7 +78,7 @@ const Layouts = () => {
     };
 
     const handleAddNewPlant = () => {
-        // Implement logic to add new plant to the mock data or your data source
+        
         console.log('New plant added:', formPlantName, formPlantType);
         onClose();
     };
@@ -127,8 +127,7 @@ const Layouts = () => {
                     bg="green.50"
                     position="relative"
                     width="100%"
-                >
-                    {/* Render plants on layout */}
+                >                   
                     {layout.map((item, index) => (
                         <Box
                             key={index}

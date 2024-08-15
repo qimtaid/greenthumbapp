@@ -5,7 +5,7 @@ function getAuthHeaders() {
     const token = localStorage.getItem('access_token');
     return {
         'Authorization': `Bearer ${token}`,
-    };
+    }; 
 }
 
 // Function to log in a user
@@ -29,11 +29,12 @@ export async function login(email, password) {
         const data = await response.json();
         console.log('Login successful:', data);
 
-        // Save token to localStorage and set as a cookie
-        if (data.access_token) {
-            localStorage.setItem('access_token', data.access_token);
-            document.cookie = `access_token_cookie=${data.access_token}; path=/;`;
-        }
+        // // Save token to localStorage and set as a cookie
+        // if (data.access_token) {
+        //     localStorage.setItem('access_token', data.access_token);
+        //     // document.cookie = `access_token=${data.access_token}`;
+            
+        // }
 
         return data;
     } catch (error) {
@@ -72,7 +73,7 @@ export const logout = async () => {
             credentials: 'include',
         });
         localStorage.removeItem('access_token');
-        document.cookie = 'access_token_cookie=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+        // document.cookie = 'access_token_cookie=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
     } catch (error) {
         console.error('Error logging out:', error);
         throw error;
@@ -112,7 +113,7 @@ export async function refreshToken() {
 
         const data = await response.json();
         localStorage.setItem('access_token', data.access_token);
-        document.cookie = `access_token_cookie=${data.access_token}; path=/;`;
+        // document.cookie = `access_token_cookie=${data.access_token}; path=/;`;
 
         return data.access_token;
     } catch (error) {
@@ -167,7 +168,6 @@ export async function addPlant(formData) {
     }
 }
 
-
 // Function to update an existing plant
 export async function updatePlant(plantId, plantData) {
     try {
@@ -212,112 +212,83 @@ export async function deletePlant(plantId) {
     }
 }
 
-
 // Function to fetch care schedules
-export const fetchCareSchedules = async () => {
-    const response = await fetch('/api/care-schedules');
-    if (!response.ok) throw new Error('Failed to fetch care schedules');
-    return response.json();
-};
-
-export const addCareSchedule = async (scheduleData) => {
-    const response = await fetch('/api/care-schedules', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(scheduleData),
-    });
-    if (!response.ok) throw new Error('Failed to add care schedule');
-    return response.json();
-};
-
-export const updateCareSchedule = async (id, scheduleData) => {
-    const response = await fetch(`/api/care-schedules/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(scheduleData),
-    });
-    if (!response.ok) throw new Error('Failed to update care schedule');
-    return response.json();
-};
-
-export const deleteCareSchedule = async (id) => {
-    const response = await fetch(`/api/care-schedules/${id}`, { method: 'DELETE' });
-    if (!response.ok) throw new Error('Failed to delete care schedule');
-};
-
-
-export const fetchTasks = async () => {
-    const response = await fetch('/api/tasks');
-    if (!response.ok) throw new Error('Failed to fetch tasks');
-    return response.json();
-};
-
-export const fetchIntervals = async () => {
-    const response = await fetch('/api/intervals');
-    if (!response.ok) throw new Error('Failed to fetch intervals');
-    return response.json();
-};
-
-// Function to get all garden layouts
-export const getGardenLayouts = async () => {
+export const fetchCareSchedules = async (plantId) => {
+    if (!plantId) throw new Error('plantId is required');
     try {
-        const response = await api.get('/garden-layouts');
-        return response.data;
-    } catch (error) {
-        console.error('Error fetching garden layouts:', error);
-        throw error;
-    }
-};
-
-// Function to get a single garden layout by ID
-export const getGardenLayoutById = async (id) => {
-    try {
-        const response = await api.get(`/garden-layouts/${id}`);
-        return response.data;
-    } catch (error) {
-        console.error(`Error fetching garden layout with ID ${id}:`, error);
-        throw error;
-    }
-};
-
-// Function to load layouts
-export const loadLayouts = async () => {
-    try {
-        const response = await fetch('/api/layouts'); // Adjust the API endpoint as needed
-        if (!response.ok) throw new Error('Network response was not ok');
+        const response = await fetch(`${API_BASE_URL}/${plantId}/care_schedules`);
+        if (!response.ok) {
+            const errorResponse = await response.text(); // Get text response for debugging
+            throw new Error(errorResponse || 'Failed to fetch care schedules');
+        }
         return await response.json();
     } catch (error) {
-        console.error('Error fetching layouts:', error);
+        console.error('Error fetching care schedules:', error);
         throw error;
     }
 };
 
-// Function to save a layout
-export const saveLayout = async (layoutData) => {
+// Function to add a care schedule
+export const addCareSchedule = async (plantId, scheduleData) => {
+    if (!plantId) throw new Error('plantId is required');
     try {
-        const response = await fetch('/api/layouts', {
+        const response = await fetch(`${API_BASE_URL}/${plantId}/care_schedules`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(layoutData)
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(scheduleData),
         });
-        if (!response.ok) throw new Error('Network response was not ok');
+        if (!response.ok) {
+            const errorResponse = await response.text(); // Get text response for debugging
+            throw new Error(errorResponse || 'Failed to add care schedule');
+        }
         return await response.json();
     } catch (error) {
-        console.error('Error saving layout:', error);
+        console.error('Error adding care schedule:', error);
+        throw error;
+    }
+};
+
+// Function to update a care schedule
+export const updateCareSchedule = async (plantId, id, scheduleData) => {
+    if (!plantId || !id) throw new Error('plantId and id are required');
+    try {
+        const response = await fetch(`${API_BASE_URL}/${plantId}/care_schedules/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(scheduleData),
+        });
+        if (!response.ok) {
+            const errorResponse = await response.text(); // Get text response for debugging
+            throw new Error(errorResponse || 'Failed to update care schedule');
+        }
+        return await response.json();
+    } catch (error) {
+        console.error('Error updating care schedule:', error);
+        throw error;
+    }
+};
+
+// Function to delete a care schedule
+export const deleteCareSchedule = async (plantId, id) => {
+    if (!plantId || !id) throw new Error('plantId and id are required');
+    try {
+        const response = await fetch(`${API_BASE_URL}/${plantId}/care_schedules/${id}`, { method: 'DELETE' });
+        if (!response.ok) {
+            const errorResponse = await response.text(); // Get text response for debugging
+            throw new Error(errorResponse || 'Failed to delete care schedule');
+        }
+    } catch (error) {
+        console.error('Error deleting care schedule:', error);
         throw error;
     }
 };
 
 
 
-
-
-// Fetch forum posts
+// Function to fetch forum posts
 export async function fetchForumPosts() {
     try {
-        const response = await fetch(`${API_BASE_URL}/forum/posts`, {
+        const response = await fetch(`${API_BASE_URL}/forum`, {
             method: 'GET',
             headers: getAuthHeaders(),
         });
@@ -335,10 +306,10 @@ export async function fetchForumPosts() {
     }
 }
 
-// Add a new forum post
+// Function to add a new forum post
 export async function addForumPost(postData) {
     try {
-        const response = await fetch(`${API_BASE_URL}/forum/posts`, {
+        const response = await fetch(`${API_BASE_URL}/forum/${id}`, {
             method: 'POST',
             headers: getAuthHeaders(),
             body: JSON.stringify(postData),
@@ -357,10 +328,10 @@ export async function addForumPost(postData) {
     }
 }
 
-// Update an existing forum post
+// Function to update an existing forum post
 export async function updateForumPost(id, postData) {
     try {
-        const response = await fetch(`${API_BASE_URL}/forum/posts/${id}`, {
+        const response = await fetch(`${API_BASE_URL}/forum/${id}`, {
             method: 'PATCH',
             headers: getAuthHeaders(),
             body: JSON.stringify(postData),
@@ -379,10 +350,10 @@ export async function updateForumPost(id, postData) {
     }
 }
 
-// Delete a forum post
+// Function to delete a forum post
 export async function deleteForumPost(id) {
     try {
-        const response = await fetch(`${API_BASE_URL}/forum/posts/${id}`, {
+        const response = await fetch(`${API_BASE_URL}/forum/${id}`, {
             method: 'DELETE',
             headers: getAuthHeaders(),
         });
@@ -400,10 +371,10 @@ export async function deleteForumPost(id) {
     }
 }
 
-// Fetch comments for a post
+// Function to fetch comments for a forum post
 export async function fetchComments(postId) {
     try {
-        const response = await fetch(`${API_BASE_URL}/forum/posts/${postId}/comments`, {
+        const response = await fetch(`${API_BASE_URL}/forum/${postId}/comments`, {
             method: 'GET',
             headers: getAuthHeaders(),
         });
@@ -421,12 +392,15 @@ export async function fetchComments(postId) {
     }
 }
 
-// Add a new comment to a post
+// Function to add a new comment to a forum post
 export async function addComment(postId, commentData) {
     try {
-        const response = await fetch(`${API_BASE_URL}/forum/posts/${postId}/comments`, {
+        const response = await fetch(`${API_BASE_URL}/forum/${postId}/comments`, {
             method: 'POST',
-            headers: getAuthHeaders(),
+            headers: {
+                'Content-Type': 'application/json',
+                ...getAuthHeaders(),
+            },
             body: JSON.stringify(commentData),
         });
 
@@ -443,115 +417,210 @@ export async function addComment(postId, commentData) {
     }
 }
 
-export const fetchTips = async () => {
+// Function to update an existing comment
+export async function updateComment(postId, commentId, commentData) {
     try {
-        const response = await fetch(API_BASE_URL);
+        const response = await fetch(`${API_BASE_URL}/forum/${postId}/comments/${commentId}`, {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
+                ...getAuthHeaders(),
+            },
+            body: JSON.stringify(commentData),
+        });
+
         if (!response.ok) {
-            throw new Error('Network response was not ok');
+            const errorData = await response.json();
+            console.error('Error updating comment:', errorData);
+            throw new Error('Failed to update comment');
         }
-        const data = await response.json();
-        if (data.message) {
-            throw new Error(data.message); // Use the message from the response if present
+
+        return await response.json();
+    } catch (error) {
+        console.error('Error updating comment:', error);
+        throw error;
+    }
+}
+
+// Function to delete an existing comment
+export async function deleteComment(postId, commentId) {
+    try {
+        const response = await fetch(`${API_BASE_URL}/forum/${postId}/comments/${commentId}`, {
+            method: 'DELETE',
+            headers: getAuthHeaders(),
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            console.error('Error deleting comment:', errorData);
+            throw new Error('Failed to delete comment');
         }
-        return data; // Assuming this is an array of tips
+
+        return await response.json();
+    } catch (error) {
+        console.error('Error deleting comment:', error);
+        throw error;
+    }
+}
+
+// Function to fetch tips
+export async function fetchTips() {
+    try {
+        const response = await fetch(`${API_BASE_URL}/tips`, {
+            method: 'GET',
+            headers: getAuthHeaders(),
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            console.error('Error fetching tips:', errorData);
+            throw new Error('Failed to fetch tips');
+        }
+
+        return await response.json();
     } catch (error) {
         console.error('Error fetching tips:', error);
-        throw error; // Re-throw error to be caught in the component
+        throw error;
     }
-};
+}
 
-// Add a new tip
-export const addTip = async (tipData) => {
+// Function to add a new tip
+export async function addTip(tipData) {
     try {
-        const response = await fetch(API_BASE_URL, {
+        const response = await fetch(`${API_BASE_URL}/tips`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
+                ...getAuthHeaders(),
             },
             body: JSON.stringify(tipData),
         });
+
         if (!response.ok) {
-            throw new Error('Network response was not ok');
+            const errorData = await response.json();
+            console.error('Error adding tip:', errorData);
+            throw new Error('Failed to add tip');
         }
+
         return await response.json();
     } catch (error) {
         console.error('Error adding tip:', error);
         throw error;
     }
-};
+}
 
-// Update an existing tip
-export const updateTip = async (id, tipData) => {
+// Function to update an existing tip
+export async function updateTip(tipId, tipData) {
     try {
-        const response = await fetch(`${API_BASE_URL}/${id}`, {
-            method: 'PUT',
+        const response = await fetch(`${API_BASE_URL}/tips/${tipId}`, {
+            method: 'PATCH',
             headers: {
                 'Content-Type': 'application/json',
+                ...getAuthHeaders(),
             },
             body: JSON.stringify(tipData),
         });
+
         if (!response.ok) {
-            throw new Error('Network response was not ok');
+            const errorData = await response.json();
+            console.error('Error updating tip:', errorData);
+            throw new Error('Failed to update tip');
         }
+
         return await response.json();
     } catch (error) {
         console.error('Error updating tip:', error);
         throw error;
     }
-};
+}
 
-// Delete a tip
-export const deleteTip = async (id) => {
+// Function to delete an existing tip
+export async function deleteTip(tipId) {
     try {
-        const response = await fetch(`${API_BASE_URL}/${id}`, {
+        const response = await fetch(`${API_BASE_URL}/tips/${tipId}`, {
             method: 'DELETE',
+            headers: getAuthHeaders(),
         });
+
         if (!response.ok) {
-            throw new Error('Network response was not ok');
+            const errorData = await response.json();
+            console.error('Error deleting tip:', errorData);
+            throw new Error('Failed to delete tip');
         }
+
         return await response.json();
     } catch (error) {
         console.error('Error deleting tip:', error);
         throw error;
     }
-};
+}
 
-// Function to fetch all garden layouts
-export const fetchGardenLayouts = async () => {
+// Function to fetch garden layouts
+export async function fetchGardenLayouts() {
     try {
         const response = await fetch(`${API_BASE_URL}/garden-layouts`, {
             method: 'GET',
             headers: getAuthHeaders(),
         });
+
         if (!response.ok) {
+            const errorData = await response.json();
+            console.error('Error fetching garden layouts:', errorData);
             throw new Error('Failed to fetch garden layouts');
         }
+
         return await response.json();
     } catch (error) {
         console.error('Error fetching garden layouts:', error);
         throw error;
     }
-};
+}
 
-// Function to fetch a single garden layout by ID
-export const fetchGardenLayoutById = async (id) => {
+// Function to fetch garden layouts
+export async function loadLayouts() {
     try {
-        const response = await fetch(`${API_BASE_URL}/garden-layouts/${id}`, {
+        const response = await fetch(`${API_BASE_URL}/garden-layouts`, {
             method: 'GET',
             headers: getAuthHeaders(),
         });
+
         if (!response.ok) {
-            throw new Error(`Failed to fetch garden layout with ID ${id}`);
+            const errorData = await response.json();
+            console.error('Error fetching garden layouts:', errorData);
+            throw new Error('Failed to fetch garden layouts');
         }
+
         return await response.json();
     } catch (error) {
-        console.error(`Error fetching garden layout with ID ${id}:`, error);
+        console.error('Error fetching garden layouts:', error);
         throw error;
     }
-};
+}
+
+// Function to save a garden layout
+export async function saveLayout(layoutData) {
+    try {
+        const response = await fetch(`${API_BASE_URL}/garden-layouts`, {
+            method: 'POST',
+            headers: getAuthHeaders(),
+            body: JSON.stringify(layoutData)
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            console.error('Error saving garden layout:', errorData);
+            throw new Error('Failed to save garden layout');
+        }
+
+        return await response.json();
+    } catch (error) {
+        console.error('Error saving garden layout:', error);
+        throw error;
+    }
+}
 
 // Function to create a new garden layout
-export const createGardenLayout = async (layoutData) => {
+export async function createGardenLayout(layoutData) {
     try {
         const response = await fetch(`${API_BASE_URL}/garden-layouts`, {
             method: 'POST',
@@ -561,20 +630,24 @@ export const createGardenLayout = async (layoutData) => {
             },
             body: JSON.stringify(layoutData),
         });
+
         if (!response.ok) {
+            const errorData = await response.json();
+            console.error('Error creating garden layout:', errorData);
             throw new Error('Failed to create garden layout');
         }
+
         return await response.json();
     } catch (error) {
         console.error('Error creating garden layout:', error);
         throw error;
     }
-};
+}
 
 // Function to update an existing garden layout
-export const updateGardenLayout = async (id, layoutData) => {
+export async function updateGardenLayout(layoutId, layoutData) {
     try {
-        const response = await fetch(`${API_BASE_URL}/garden-layouts/${id}`, {
+        const response = await fetch(`${API_BASE_URL}/garden-layouts/${layoutId}`, {
             method: 'PATCH',
             headers: {
                 'Content-Type': 'application/json',
@@ -582,29 +655,37 @@ export const updateGardenLayout = async (id, layoutData) => {
             },
             body: JSON.stringify(layoutData),
         });
+
         if (!response.ok) {
+            const errorData = await response.json();
+            console.error('Error updating garden layout:', errorData);
             throw new Error('Failed to update garden layout');
         }
+
         return await response.json();
     } catch (error) {
         console.error('Error updating garden layout:', error);
         throw error;
     }
-};
+}
 
 // Function to delete a garden layout
-export const deleteGardenLayout = async (id) => {
+export async function deleteGardenLayout(layoutId) {
     try {
-        const response = await fetch(`${API_BASE_URL}/garden-layouts/${id}`, {
+        const response = await fetch(`${API_BASE_URL}/garden-layouts/${layoutId}`, {
             method: 'DELETE',
             headers: getAuthHeaders(),
         });
+
         if (!response.ok) {
+            const errorData = await response.json();
+            console.error('Error deleting garden layout:', errorData);
             throw new Error('Failed to delete garden layout');
         }
+
         return await response.json();
     } catch (error) {
         console.error('Error deleting garden layout:', error);
         throw error;
     }
-};
+}

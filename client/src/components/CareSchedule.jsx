@@ -1,54 +1,77 @@
 import React, { useState, useEffect } from 'react';
-import { Button, Box, Table, Thead, Tbody, Tr, Th, Td, TableCaption, FormControl, FormLabel, Input, Select, useToast } from '@chakra-ui/react';
-import { fetchCareSchedules, addCareSchedule, updateCareSchedule, deleteCareSchedule, fetchPlants, fetchTasks, fetchIntervals } from '../utils/api';
+import {
+    Button,
+    Box,
+    Table,
+    Thead,
+    Tbody,
+    Tr,
+    Th,
+    Td,
+    TableCaption,
+    FormControl,
+    FormLabel,
+    Input,
+    Select,
+    useToast,
+} from '@chakra-ui/react';
+import {
+    fetchCareSchedules,
+    addCareSchedule,
+    updateCareSchedule,
+    deleteCareSchedule,
+    fetchPlants,
+} from '../utils/api';
 
 const CareSchedule = () => {
     const [schedules, setSchedules] = useState([]);
     const [plants, setPlants] = useState([]);
-    const [tasks, setTasks] = useState([]);
-    const [intervals, setIntervals] = useState([]);
     const [editingSchedule, setEditingSchedule] = useState(null);
     const [showForm, setShowForm] = useState(false);
     const toast = useToast();
 
     useEffect(() => {
-        const fetchSchedulesAndData = async () => {
+        const fetchSchedulesAndPlants = async () => {
             try {
-                const [scheduleData, plantData, taskData, intervalData] = await Promise.all([
+                const [scheduleData, plantData] = await Promise.all([
                     fetchCareSchedules(),
                     fetchPlants(),
-                    fetchTasks(),
-                    fetchIntervals()
                 ]);
                 setSchedules(scheduleData);
                 setPlants(plantData);
-                setTasks(taskData);
-                setIntervals(intervalData);
             } catch (error) {
                 console.error('Error fetching data:', error);
                 toast({
                     title: 'Error fetching data',
+                    description: error.message,
                     status: 'error',
-                    duration: 2000,
+                    duration: 3000,
                     isClosable: true,
                 });
             }
         };
 
-        fetchSchedulesAndData();
+        fetchSchedulesAndPlants();
     }, [toast]);
 
     const handleAddSchedule = async (scheduleData) => {
         try {
             const newSchedule = await addCareSchedule(scheduleData);
-            setSchedules([...schedules, newSchedule]);
+            setSchedules((prevSchedules) => [...prevSchedules, newSchedule]);
             setShowForm(false);
+            toast({
+                title: 'Care schedule added',
+                status: 'success',
+                duration: 2000,
+                isClosable: true,
+            });
         } catch (error) {
             console.error('Error adding care schedule:', error);
             toast({
                 title: 'Error adding care schedule',
+                description: error.message,
                 status: 'error',
-                duration: 2000,
+                duration: 3000,
                 isClosable: true,
             });
         }
@@ -57,15 +80,26 @@ const CareSchedule = () => {
     const handleUpdateSchedule = async (id, scheduleData) => {
         try {
             const updatedSchedule = await updateCareSchedule(id, scheduleData);
-            setSchedules(schedules.map(schedule => schedule.id === id ? updatedSchedule : schedule));
+            setSchedules((prevSchedules) =>
+                prevSchedules.map((schedule) =>
+                    schedule.id === id ? updatedSchedule : schedule
+                )
+            );
             setEditingSchedule(null);
             setShowForm(false);
+            toast({
+                title: 'Care schedule updated',
+                status: 'success',
+                duration: 2000,
+                isClosable: true,
+            });
         } catch (error) {
             console.error('Error updating care schedule:', error);
             toast({
                 title: 'Error updating care schedule',
+                description: error.message,
                 status: 'error',
-                duration: 2000,
+                duration: 3000,
                 isClosable: true,
             });
         }
@@ -74,27 +108,38 @@ const CareSchedule = () => {
     const handleDeleteSchedule = async (id) => {
         try {
             await deleteCareSchedule(id);
-            setSchedules(schedules.filter(schedule => schedule.id !== id));
+            setSchedules((prevSchedules) =>
+                prevSchedules.filter((schedule) => schedule.id !== id)
+            );
+            toast({
+                title: 'Care schedule deleted',
+                status: 'success',
+                duration: 2000,
+                isClosable: true,
+            });
         } catch (error) {
             console.error('Error deleting care schedule:', error);
             toast({
                 title: 'Error deleting care schedule',
+                description: error.message,
                 status: 'error',
-                duration: 2000,
+                duration: 3000,
                 isClosable: true,
             });
         }
     };
 
     const CareScheduleForm = ({ schedule, onSave, onCancel }) => {
-        const [plantName, setPlantName] = useState(schedule ? schedule.plant_name : '');
+        const [plantId, setPlantId] = useState(schedule ? schedule.plant_id : '');
         const [task, setTask] = useState(schedule ? schedule.task : '');
-        const [scheduleDate, setScheduleDate] = useState(schedule ? new Date(schedule.schedule_date).toISOString().substring(0, 10) : '');
+        const [scheduleDate, setScheduleDate] = useState(
+            schedule ? new Date(schedule.schedule_date).toISOString().substring(0, 10) : ''
+        );
         const [interval, setInterval] = useState(schedule ? schedule.interval : '');
 
         const handleSubmit = (event) => {
             event.preventDefault();
-            const newSchedule = { plant_name: plantName, task, schedule_date: scheduleDate, interval };
+            const newSchedule = { plant_id: plantId, task, schedule_date: scheduleDate, interval };
             if (schedule) {
                 onSave(schedule.id, newSchedule);
             } else {
@@ -109,12 +154,12 @@ const CareSchedule = () => {
                         <FormLabel>Plant</FormLabel>
                         <Select
                             placeholder="Select plant"
-                            value={plantName}
-                            onChange={(e) => setPlantName(e.target.value)}
+                            value={plantId}
+                            onChange={(e) => setPlantId(e.target.value)}
                             required
                         >
                             {plants.map((plant) => (
-                                <option key={plant.id} value={plant.name}>
+                                <option key={plant.id} value={plant.id}>
                                     {plant.name}
                                 </option>
                             ))}
@@ -128,11 +173,11 @@ const CareSchedule = () => {
                             onChange={(e) => setTask(e.target.value)}
                             required
                         >
-                            {tasks.map((taskItem) => (
-                                <option key={taskItem.id} value={taskItem.name}>
-                                    {taskItem.name}
-                                </option>
-                            ))}
+                            <option value="WATERING">WATERING</option>
+                            <option value="PRUNING">PRUNING</option>
+                            <option value="FERTILIZING">FERTILIZING</option>
+                            <option value="HARVESTING">HARVESTING</option>
+                            
                         </Select>
                     </FormControl>
                     <FormControl mb={3}>
@@ -152,11 +197,10 @@ const CareSchedule = () => {
                             onChange={(e) => setInterval(e.target.value)}
                             required
                         >
-                            {intervals.map((intervalItem) => (
-                                <option key={intervalItem.id} value={intervalItem.name}>
-                                    {intervalItem.name}
-                                </option>
-                            ))}
+                            <option value="DAILY">DAILY</option>
+                            <option value="WEEKLY">WEEKLY</option>
+                            <option value="MONTHLY">MONTHLY</option>
+                            
                         </Select>
                     </FormControl>
                     <Button colorScheme="teal" mr={3} type="submit">
@@ -170,7 +214,14 @@ const CareSchedule = () => {
 
     return (
         <Box p={4}>
-            <Button mb={4} colorScheme="teal" onClick={() => { setEditingSchedule(null); setShowForm(true); }}>
+            <Button
+                mb={4}
+                colorScheme="teal"
+                onClick={() => {
+                    setEditingSchedule(null);
+                    setShowForm(true);
+                }}
+            >
                 Add New Schedule
             </Button>
             {showForm && (
@@ -204,7 +255,10 @@ const CareSchedule = () => {
                                         colorScheme="blue"
                                         size="sm"
                                         mr={2}
-                                        onClick={() => { setEditingSchedule(schedule); setShowForm(true); }}
+                                        onClick={() => {
+                                            setEditingSchedule(schedule);
+                                            setShowForm(true);
+                                        }}
                                     >
                                         Edit
                                     </Button>

@@ -73,7 +73,7 @@ function App() {
                 element={isAuthenticated ? <Plants /> : <Navigate to="/login" />}
               />
               <Route
-                path="/careschedule"
+                path="/care_schedules"
                 element={isAuthenticated ? <CareSchedule /> : <Navigate to="/login" />}
               />
               <Route

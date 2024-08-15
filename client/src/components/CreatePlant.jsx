@@ -145,7 +145,7 @@ const CreatePlant = ({ setPlants }) => {
 };
 
 CreatePlant.propTypes = {
-  setPlants: PropTypes.func.isRequired, // Validate setPlants prop
+  setPlants: PropTypes.func.isRequired, 
 };
 
 export default CreatePlant;
