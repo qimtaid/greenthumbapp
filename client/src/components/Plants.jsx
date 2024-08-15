@@ -23,9 +23,18 @@ import {
   IconButton,
   Image,
   useToast,
+  Menu,
+  MenuButton,
+  MenuList,
+  MenuItem,
+  MenuDivider,
+  VStack,
+  Heading,
+  Text,
+  Icon,
 } from '@chakra-ui/react';
-import { FaEdit, FaTrash } from 'react-icons/fa';
-import { fetchPlants, addPlant, updatePlant, deletePlant } from '../utils/api'; // Import functions
+import { FaEdit, FaTrash, FaEllipsisV, FaSeedling } from 'react-icons/fa';
+import { fetchPlants, addPlant, updatePlant, deletePlant } from '../utils/api';
 
 const Plants = () => {
   const [plants, setPlants] = useState([]);
@@ -53,10 +62,11 @@ const Plants = () => {
   };
 
   const handleAddPlant = async () => {
-    const formData = new FormData();
-    formData.append('name', newPlant.name);
-    formData.append('description', newPlant.description);
-    formData.append('image', newPlant.img_url); // Assuming img_url contains the file object
+    const formData = {
+      name: newPlant.name,
+      description: newPlant.description,
+      img_url: newPlant.img_url,
+    };
 
     try {
       await addPlant(formData);
@@ -67,6 +77,7 @@ const Plants = () => {
         duration: 3000,
         isClosable: true,
       });
+
       setNewPlant({ name: '', description: '', img_url: '' });
       onAddClose();
       fetchPlantsData();
@@ -80,8 +91,7 @@ const Plants = () => {
         isClosable: true,
       });
     }
-};
-
+  };
 
   const handleUpdatePlant = async (plant) => {
     try {
@@ -143,6 +153,23 @@ const Plants = () => {
 
   return (
     <Box p={4}>
+      <VStack
+        spacing={4}
+        align="center"
+        bg="teal.500" // Solid background color
+        color="white"
+        borderRadius="md"
+        p={4}
+        mb={6}
+        shadow="md"
+      >
+        <Icon as={FaSeedling} boxSize={10} />
+        <Heading size="md">Welcome to Your Plant Collection!</Heading>
+        <Text fontSize="lg" textAlign="center">
+          Here you can manage your plants. Click the "Add Plant" button below to start adding new plants to your collection, or edit existing ones by clicking the three dots next to each plant.
+        </Text>
+      </VStack>
+
       <Button mb={4} colorScheme="teal" onClick={onAddOpen}>
         Add Plant
       </Button>
@@ -173,19 +200,29 @@ const Plants = () => {
                 <Td>{plant.name}</Td>
                 <Td>{plant.description}</Td>
                 <Td>
-                  <IconButton
-                    aria-label="Edit plant"
-                    icon={<FaEdit />}
-                    colorScheme="teal"
-                    onClick={() => openEditModal(plant)}
-                    mr={2}
-                  />
-                  <IconButton
-                    aria-label="Delete plant"
-                    icon={<FaTrash />}
-                    colorScheme="red"
-                    onClick={() => openDeleteModal(plant)}
-                  />
+                  <Menu>
+                    <MenuButton
+                      as={IconButton}
+                      aria-label="Options"
+                      icon={<FaEllipsisV />}
+                      variant="outline"
+                    />
+                    <MenuList>
+                      <MenuItem
+                        icon={<FaEdit />}
+                        onClick={() => openEditModal(plant)}
+                      >
+                        Edit
+                      </MenuItem>
+                      <MenuDivider />
+                      <MenuItem
+                        icon={<FaTrash />}
+                        onClick={() => openDeleteModal(plant)}
+                      >
+                        Delete
+                      </MenuItem>
+                    </MenuList>
+                  </Menu>
                 </Td>
               </Tr>
             ))
@@ -269,7 +306,7 @@ const Plants = () => {
         <ModalContent>
           <ModalHeader>Delete Plant</ModalHeader>
           <ModalBody>
-          Are you sure you want to delete the plant &apos;{currentPlant?.name}&apos;?
+            Are you sure you want to delete this plant?
           </ModalBody>
           <ModalFooter>
             <Button colorScheme="red" mr={3} onClick={() => handleDeletePlant(currentPlant.id)}>

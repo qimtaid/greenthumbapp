@@ -28,17 +28,20 @@ const CareSchedule = () => {
     const [plants, setPlants] = useState([]);
     const [editingSchedule, setEditingSchedule] = useState(null);
     const [showForm, setShowForm] = useState(false);
+    const [plantId, setPlantId] = useState(''); // Plant ID state
     const toast = useToast();
 
     useEffect(() => {
         const fetchSchedulesAndPlants = async () => {
             try {
-                const [scheduleData, plantData] = await Promise.all([
-                    fetchCareSchedules(),
-                    fetchPlants(),
-                ]);
-                setSchedules(scheduleData);
-                setPlants(plantData);
+                if (plantId) { // Fetch schedules only if plantId is available
+                    const [scheduleData, plantData] = await Promise.all([
+                        fetchCareSchedules(plantId), // Pass plantId
+                        fetchPlants(),
+                    ]);
+                    setSchedules(scheduleData);
+                    setPlants(plantData);
+                }
             } catch (error) {
                 console.error('Error fetching data:', error);
                 toast({
@@ -52,11 +55,11 @@ const CareSchedule = () => {
         };
 
         fetchSchedulesAndPlants();
-    }, [toast]);
+    }, [plantId, toast]);
 
     const handleAddSchedule = async (scheduleData) => {
         try {
-            const newSchedule = await addCareSchedule(scheduleData);
+            const newSchedule = await addCareSchedule(plantId, scheduleData); // Pass plantId
             setSchedules((prevSchedules) => [...prevSchedules, newSchedule]);
             setShowForm(false);
             toast({
@@ -79,7 +82,7 @@ const CareSchedule = () => {
 
     const handleUpdateSchedule = async (id, scheduleData) => {
         try {
-            const updatedSchedule = await updateCareSchedule(id, scheduleData);
+            const updatedSchedule = await updateCareSchedule(plantId, id, scheduleData); // Pass plantId
             setSchedules((prevSchedules) =>
                 prevSchedules.map((schedule) =>
                     schedule.id === id ? updatedSchedule : schedule
@@ -107,7 +110,7 @@ const CareSchedule = () => {
 
     const handleDeleteSchedule = async (id) => {
         try {
-            await deleteCareSchedule(id);
+            await deleteCareSchedule(plantId, id); // Pass plantId
             setSchedules((prevSchedules) =>
                 prevSchedules.filter((schedule) => schedule.id !== id)
             );
@@ -130,7 +133,6 @@ const CareSchedule = () => {
     };
 
     const CareScheduleForm = ({ schedule, onSave, onCancel }) => {
-        const [plantId, setPlantId] = useState(schedule ? schedule.plant_id : '');
         const [task, setTask] = useState(schedule ? schedule.task : '');
         const [scheduleDate, setScheduleDate] = useState(
             schedule ? new Date(schedule.schedule_date).toISOString().substring(0, 10) : ''
@@ -151,21 +153,6 @@ const CareSchedule = () => {
             <Box p={4} borderWidth="1px" borderRadius="md" boxShadow="md">
                 <form onSubmit={handleSubmit}>
                     <FormControl mb={3}>
-                        <FormLabel>Plant</FormLabel>
-                        <Select
-                            placeholder="Select plant"
-                            value={plantId}
-                            onChange={(e) => setPlantId(e.target.value)}
-                            required
-                        >
-                            {plants.map((plant) => (
-                                <option key={plant.id} value={plant.id}>
-                                    {plant.name}
-                                </option>
-                            ))}
-                        </Select>
-                    </FormControl>
-                    <FormControl mb={3}>
                         <FormLabel>Task</FormLabel>
                         <Select
                             placeholder="Select task"
@@ -177,7 +164,6 @@ const CareSchedule = () => {
                             <option value="PRUNING">PRUNING</option>
                             <option value="FERTILIZING">FERTILIZING</option>
                             <option value="HARVESTING">HARVESTING</option>
-                            
                         </Select>
                     </FormControl>
                     <FormControl mb={3}>
@@ -200,7 +186,6 @@ const CareSchedule = () => {
                             <option value="DAILY">DAILY</option>
                             <option value="WEEKLY">WEEKLY</option>
                             <option value="MONTHLY">MONTHLY</option>
-                            
                         </Select>
                     </FormControl>
                     <Button colorScheme="teal" mr={3} type="submit">
@@ -214,6 +199,21 @@ const CareSchedule = () => {
 
     return (
         <Box p={4}>
+            <FormControl mb={4}>
+                <FormLabel>Select Plant</FormLabel>
+                <Select
+                    placeholder="Select plant"
+                    value={plantId}
+                    onChange={(e) => setPlantId(e.target.value)}
+                    required
+                >
+                    {plants.map((plant) => (
+                        <option key={plant.id} value={plant.id}>
+                            {plant.name}
+                        </option>
+                    ))}
+                </Select>
+            </FormControl>
             <Button
                 mb={4}
                 colorScheme="teal"

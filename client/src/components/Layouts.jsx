@@ -21,13 +21,6 @@ import {
 } from '@chakra-ui/react';
 import { saveLayout, loadLayouts } from '../utils/api'; // Make sure these functions are correctly exported
 
-// Mock data for plants
-const plants = [
-    { id: 1, name: 'Tomato' },
-    { id: 2, name: 'Basil' },
-    { id: 3, name: 'Cucumber' }
-];
-
 // Component for the garden layout planner
 const Layouts = () => {
     const [selectedPlant, setSelectedPlant] = useState('');
@@ -35,15 +28,18 @@ const Layouts = () => {
     const [layouts, setLayouts] = useState([]);
     const [layoutName, setLayoutName] = useState('');
     const { isOpen, onOpen, onClose } = useDisclosure();
-    const [formPlantName, setFormPlantName] = useState('');
-    const [formPlantType, setFormPlantType] = useState('');
     const toast = useToast();
 
     useEffect(() => {
         const fetchLayouts = async () => {
             try {
                 const data = await loadLayouts();
-                setLayouts(data);
+                // Assuming data comes as an array of layout objects with layout_data as a JSON string
+                const parsedLayouts = data.map((layout) => ({
+                    ...layout,
+                    layout_data: JSON.parse(layout.layout_data)
+                }));
+                setLayouts(parsedLayouts);
             } catch (error) {
                 console.error('Error fetching layouts:', error);
             }
@@ -57,7 +53,8 @@ const Layouts = () => {
 
     const handleAddPlant = () => {
         if (selectedPlant) {
-            setLayout([...layout, { plantId: selectedPlant, position: { x: 0, y: 0 } }]);
+            const newPlant = { plantId: selectedPlant, position: { x: 0, y: 0 } };
+            setLayout([...layout, newPlant]);
         }
     };
 
@@ -65,9 +62,10 @@ const Layouts = () => {
         try {
             const layoutData = {
                 name: layoutName,
-                plants: layout
+                layout_data: JSON.stringify(layout),
+                user_id: 1 // Assuming a static user ID for demonstration
             };
-            await saveLayout(layoutData); 
+            await saveLayout(layoutData);
             toast({ title: 'Layout saved successfully!', status: 'success' });
             setLayout([]);
             setLayoutName('');
@@ -77,25 +75,21 @@ const Layouts = () => {
         }
     };
 
-    const handleAddNewPlant = () => {
-        
-        console.log('New plant added:', formPlantName, formPlantType);
-        onClose();
-    };
-
     return (
         <Box p={4}>
             <Heading mb={4}>Garden Layout Planner</Heading>
             <Flex mb={4} direction="column" align="center">
                 <Stack spacing={4} mb={4}>
                     <Select placeholder="Select a plant" onChange={handlePlantSelect}>
-                        {plants.map((plant) => (
-                            <option key={plant.id} value={plant.id}>
-                                {plant.name}
+                        {layouts.map((layoutItem) => (
+                            <option key={layoutItem.id} value={layoutItem.id}>
+                                {layoutItem.name}
                             </option>
                         ))}
                     </Select>
-                    <Button colorScheme="teal" onClick={handleAddPlant}>Add Plant to Layout</Button>
+                    <Button colorScheme="teal" onClick={handleAddPlant}>
+                        Add Plant to Layout
+                    </Button>
                 </Stack>
                 <FormControl mb={4}>
                     <FormLabel htmlFor="layoutName">Layout Name</FormLabel>
@@ -107,27 +101,14 @@ const Layouts = () => {
                     />
                 </FormControl>
                 <Flex mb={4}>
-                    <Button colorScheme="blue" onClick={handleSaveLayout} mr={4}>Save Layout</Button>
+                    <Button colorScheme="blue" onClick={handleSaveLayout} mr={4}>
+                        Save Layout
+                    </Button>
                 </Flex>
-                <Button colorScheme="teal" onClick={onOpen}>Add New Plant</Button>
             </Flex>
-            <Box
-                borderWidth={1}
-                borderRadius="md"
-                p={4}
-                minHeight="500px"
-                position="relative"
-                bg="gray.100"
-            >
+            <Box borderWidth={1} borderRadius="md" p={4} minHeight="500px" position="relative" bg="gray.100">
                 <Text mb={2}>Garden Layout:</Text>
-                <Box
-                    borderWidth={1}
-                    borderRadius="md"
-                    height="400px"
-                    bg="green.50"
-                    position="relative"
-                    width="100%"
-                >                   
+                <Box borderWidth={1} borderRadius="md" height="400px" bg="green.50" position="relative" width="100%">
                     {layout.map((item, index) => (
                         <Box
                             key={index}
@@ -141,43 +122,11 @@ const Layouts = () => {
                             textAlign="center"
                             lineHeight="50px"
                         >
-                            {plants.find(p => p.id === item.plantId)?.name}
+                            {item.plantId}
                         </Box>
                     ))}
                 </Box>
             </Box>
-            <Modal isOpen={isOpen} onClose={onClose}>
-                <ModalOverlay />
-                <ModalContent>
-                    <ModalHeader>Add New Plant</ModalHeader>
-                    <ModalBody>
-                        <Stack spacing={4}>
-                            <Input
-                                value={formPlantName}
-                                onChange={(e) => setFormPlantName(e.target.value)}
-                                placeholder="Plant Name"
-                            />
-                            <Select
-                                placeholder="Select Plant Type"
-                                value={formPlantType}
-                                onChange={(e) => setFormPlantType(e.target.value)}
-                            >
-                                <option value="Vegetable">Vegetable</option>
-                                <option value="Herb">Herb</option>
-                                <option value="Flower">Flower</option>
-                            </Select>
-                        </Stack>
-                    </ModalBody>
-                    <ModalFooter>
-                        <Button colorScheme="blue" mr={3} onClick={handleAddNewPlant}>
-                            Add Plant
-                        </Button>
-                        <Button variant="outline" onClick={onClose}>
-                            Cancel
-                        </Button>
-                    </ModalFooter>
-                </ModalContent>
-            </Modal>
         </Box>
     );
 };
