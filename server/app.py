@@ -21,6 +21,7 @@ ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 
 # Initialize extensions
 CORS(app, supports_credentials=True)
+CORS(app, resources={r"/api/*": {"origins": "*"}})
 db.init_app(app)
 migrate = Migrate(app, db)
 jwt = JWTManager(app)
@@ -96,29 +97,25 @@ def logout():
 @app.route('/plants', methods=['POST'])
 @jwt_required()
 def add_plant():
-    name = request.form.get('name')
-    description = request.form.get('description')
+    data = request.json  # Expecting JSON data
+
+    name = data.get('name')
+    description = data.get('description')
+    img_url = data.get('img_url')
     user_id = get_jwt_identity()
-    img_url = None
 
     if not name:
         return jsonify({"error": "Plant name is required"}), 400
 
-    # Check if an image file is included in the request
-    if 'image' in request.files:
-        file = request.files['image']
-        if file and allowed_file(file.filename):
-            filename = secure_filename(file.filename)
-            file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-            file.save(file_path)
-            img_url = url_for('uploaded_file', filename=filename, _external=True)
+    if not img_url:
+        return jsonify({"error": "Image URL is required"}), 400
 
-    # Create and save the new plant record
-    new_plant = Plant(name=name, img_url=img_url, description=description, user_id=user_id)
+    # Save the plant details to the database
+    new_plant = Plant(name=name, description=description, img_url=img_url, user_id=user_id)
     db.session.add(new_plant)
     db.session.commit()
 
-    return jsonify({"msg": "Plant added successfully", "img_url": img_url}), 201
+    return jsonify({"message": "Plant added successfully"}), 201
 
 @app.route('/plants', methods=['GET'])
 @jwt_required()
@@ -163,6 +160,14 @@ def delete_plant(plant_id):
     return jsonify({"msg": "Plant deleted successfully"}), 200
 
 # Care Schedule Management
+@app.route('/plants/<int:plant_id>/care_schedules', methods=['GET'])
+@jwt_required()
+def get_care_schedules(plant_id):
+    try:
+        schedules = CareSchedule.query.filter_by(plant_id=plant_id).all()
+        return jsonify([{"id": schedule.id, "task": schedule.task, "schedule_date": schedule.schedule_date} for schedule in schedules]), 200
+    except Exception as e:
+        return jsonify({"msg": "Error retrieving care schedules", "error": str(e)}), 500
 
 @app.route('/plants/<int:plant_id>/care_schedules', methods=['POST'])
 @jwt_required()
@@ -183,18 +188,9 @@ def add_care_schedule(plant_id):
         db.session.commit()
         return jsonify({"msg": "Care schedule added successfully"}), 201
     except Exception as e:
-        db.session.rollback()  # Rollback in case of error
+        db.session.rollback()
         return jsonify({"msg": "Error adding care schedule", "error": str(e)}), 500
 
-
-@app.route('/plants/<int:plant_id>/care_schedules', methods=['GET'])
-@jwt_required()
-def get_care_schedules(plant_id):
-    try:
-        schedules = CareSchedule.query.filter_by(plant_id=plant_id).all()
-        return jsonify([{"id": schedule.id, "task": schedule.task, "schedule_date": schedule.schedule_date} for schedule in schedules]), 200
-    except Exception as e:
-        return jsonify({"msg": "Error retrieving care schedules", "error": str(e)}), 500
 
 
 
@@ -261,15 +257,28 @@ def add_forum_post():
     title = data.get('title')
     content = data.get('content')
     author_id = get_jwt_identity()
+
     new_post = ForumPost(title=title, content=content, author_id=author_id)
     db.session.add(new_post)
     db.session.commit()
-    return jsonify({"msg": "Forum post added successfully"}), 201
+
+    return jsonify({"msg": "Forum post added successfully", "post": new_post.id}), 201
 
 @app.route('/forum', methods=['GET'])
 def get_forum_posts():
     posts = ForumPost.query.all()
-    return jsonify([{"id": post.id, "title": post.title, "content": post.content, "author_id": post.author_id} for post in posts]), 200
+    return jsonify([
+        {
+            "id": post.id,
+            "title": post.title,
+            "content": post.content,
+            "author_id": post.author_id,
+            "comments": [
+                {"id": comment.id, "content": comment.content, "author_id": comment.author_id}
+                for comment in post.comments
+            ]
+        } for post in posts
+    ]), 200
 
 @app.route('/forum/<int:post_id>', methods=['PATCH'])
 @jwt_required()
@@ -296,6 +305,10 @@ def delete_forum_post(post_id):
     post = ForumPost.query.get_or_404(post_id)
     user_id = get_jwt_identity()
 
+    # Debugging output
+    print(f"User ID from token: {user_id}")
+    print(f"Post author ID: {post.author_id}")
+
     if post.author_id != user_id:
         return jsonify({"msg": "Unauthorized"}), 403
 
@@ -304,22 +317,39 @@ def delete_forum_post(post_id):
 
     return jsonify({"msg": "Forum post deleted successfully"}), 200
 
+
+
+
 # Comment Management
-@app.route('/comments', methods=['POST'])
+@app.route('/forum/<int:post_id>/comments', methods=['GET'])
 @jwt_required()
-def add_comment():
+def get_comments(post_id):
+    comments = Comment.query.filter_by(post_id=post_id).all()
+    return jsonify([{
+        "id": comment.id,
+        "content": comment.content,
+        "author_id": comment.author_id
+    } for comment in comments]), 200
+
+
+
+@app.route('/forum/<int:post_id>/comments', methods=['POST'])
+@jwt_required()
+def add_comment(post_id):
     data = request.get_json()
     content = data.get('content')
     author_id = get_jwt_identity()
-    post_id = data.get('post_id')
-    new_comment = Comment(content=content, author_id=author_id, post_id=post_id)
+
+    post = ForumPost.query.get_or_404(post_id)
+    new_comment = Comment(content=content, author_id=author_id, post_id=post.id)
     db.session.add(new_comment)
     db.session.commit()
-    return jsonify({"msg": "Comment added successfully"}), 201
 
-@app.route('/comments/<int:comment_id>', methods=['PATCH'])
+    return jsonify({"msg": "Comment added successfully", "comment": new_comment.id}), 201
+
+@app.route('/forum/<int:post_id>/comments/<int:comment_id>', methods=['PATCH'])
 @jwt_required()
-def update_comment(comment_id):
+def update_comment(post_id, comment_id):
     data = request.get_json()
     comment = Comment.query.get_or_404(comment_id)
     user_id = get_jwt_identity()
@@ -334,9 +364,9 @@ def update_comment(comment_id):
 
     return jsonify({"msg": "Comment updated successfully"}), 200
 
-@app.route('/comments/<int:comment_id>', methods=['DELETE'])
+@app.route('/forum/<int:post_id>/comments/<int:comment_id>', methods=['DELETE'])
 @jwt_required()
-def delete_comment(comment_id):
+def delete_comment(post_id, comment_id):
     comment = Comment.query.get_or_404(comment_id)
     user_id = get_jwt_identity()
 
@@ -349,24 +379,33 @@ def delete_comment(comment_id):
     return jsonify({"msg": "Comment deleted successfully"}), 200
 
 # Garden Layout Management
-@app.route('/layouts', methods=['POST'])
+
+@app.route('/layout', methods=['POST'])
 @jwt_required()
 def add_garden_layout():
     data = request.get_json()
-    layout_name = data.get('layout_name')
-    layout_image_url = data.get('layout_image_url')
+    name = data.get('name')
+    layout_data = data.get('layout_data')
     user_id = get_jwt_identity()
-    new_layout = GardenLayout(layout_name=layout_name, layout_image_url=layout_image_url, user_id=user_id)
+
+    if not name or not layout_data:
+        return jsonify({"msg": "Missing required data"}), 400
+
+    new_layout = GardenLayout(name=name, layout_data=layout_data, user_id=user_id)
     db.session.add(new_layout)
     db.session.commit()
     return jsonify({"msg": "Garden layout added successfully"}), 201
 
-@app.route('/layouts', methods=['GET'])
+
+@app.route('/layout', methods=['GET'])
 @jwt_required()
 def get_garden_layouts():
     user_id = get_jwt_identity()
     layouts = GardenLayout.query.filter_by(user_id=user_id).all()
-    return jsonify([{"id": layout.id, "layout_name": layout.layout_name, "layout_image_url": layout.layout_image_url} for layout in layouts]), 200
+    return jsonify([{"id": layout.id, "name": layout.name, "layout_data": layout.layout_data} for layout in layouts]), 200
+
+
+
 
 # File uploads handling
 @app.route('/uploads/<filename>')

@@ -6,35 +6,26 @@ import {
     Heading,
     Stack,
     Text,
-    useDisclosure,
-    Modal,
-    ModalOverlay,
-    ModalContent,
-    ModalHeader,
-    ModalBody,
-    ModalFooter,
-    Input,
     Select,
     FormControl,
     FormLabel,
+    Input,
     useToast
 } from '@chakra-ui/react';
-import { saveLayout, loadLayouts } from '../utils/api'; // Make sure these functions are correctly exported
+import { saveLayout, loadLayouts, fetchPlants } from '../utils/api'; // Ensure fetchPlants is imported
 
-// Component for the garden layout planner
 const Layouts = () => {
     const [selectedPlant, setSelectedPlant] = useState('');
     const [layout, setLayout] = useState([]);
     const [layouts, setLayouts] = useState([]);
+    const [plants, setPlants] = useState([]);
     const [layoutName, setLayoutName] = useState('');
-    const { isOpen, onOpen, onClose } = useDisclosure();
     const toast = useToast();
 
     useEffect(() => {
         const fetchLayouts = async () => {
             try {
                 const data = await loadLayouts();
-                // Assuming data comes as an array of layout objects with layout_data as a JSON string
                 const parsedLayouts = data.map((layout) => ({
                     ...layout,
                     layout_data: JSON.parse(layout.layout_data)
@@ -44,7 +35,18 @@ const Layouts = () => {
                 console.error('Error fetching layouts:', error);
             }
         };
+
+        const fetchPlantData = async () => {
+            try {
+                const data = await fetchPlants(); // Adjusted function name
+                setPlants(data);
+            } catch (error) {
+                console.error('Error fetching plants:', error);
+            }
+        };
+
         fetchLayouts();
+        fetchPlantData();
     }, []);
 
     const handlePlantSelect = (e) => {
@@ -62,8 +64,8 @@ const Layouts = () => {
         try {
             const layoutData = {
                 name: layoutName,
-                layout_data: JSON.stringify(layout),
-                user_id: 1 // Assuming a static user ID for demonstration
+                layout_data: JSON.stringify(layout), // Ensure this is a string
+                user_id: 1 // Replace with actual user ID if applicable
             };
             await saveLayout(layoutData);
             toast({ title: 'Layout saved successfully!', status: 'success' });
@@ -81,9 +83,9 @@ const Layouts = () => {
             <Flex mb={4} direction="column" align="center">
                 <Stack spacing={4} mb={4}>
                     <Select placeholder="Select a plant" onChange={handlePlantSelect}>
-                        {layouts.map((layoutItem) => (
-                            <option key={layoutItem.id} value={layoutItem.id}>
-                                {layoutItem.name}
+                        {plants.map((plant) => (
+                            <option key={plant.id} value={plant.id}>
+                                {plant.name}
                             </option>
                         ))}
                     </Select>

@@ -114,13 +114,13 @@ const Forum = () => {
       toast({ title: 'Post deleted', status: 'success' });
       setCurrentPost(null);
       onPostDeleteClose();
-      fetchData();
+      fetchData(); // Refresh the list of posts
     } catch (error) {
       console.error('Error deleting post:', error);
       toast({ title: 'Error deleting post', status: 'error' });
     }
   };
-
+  
   const handleAddComment = async () => {
     try {
       await addComment(selectedPostId, { content: newComment });
@@ -192,12 +192,12 @@ const Forum = () => {
                     onClick={() => openPostEditModal(post)}
                     mr={2}
                   />
-                  <IconButton
+                  {/* <IconButton
                     aria-label="Delete post"
                     icon={<FaTrash />}
                     colorScheme="red"
                     onClick={() => openPostDeleteModal(post)}
-                  />
+                  /> */}
                 </Td>
               </Tr>
             ))
@@ -237,7 +237,7 @@ const Forum = () => {
         </ModalContent>
       </Modal>
 
-      {/* Edit Post Modal */}
+      
       <Modal isOpen={isPostEditModalOpen} onClose={onPostEditClose}>
         <ModalOverlay />
         <ModalContent>
@@ -265,7 +265,7 @@ const Forum = () => {
         </ModalContent>
       </Modal>
 
-      {/* Delete Post Modal */}
+      
       <Modal isOpen={isPostDeleteModalOpen} onClose={onPostDeleteClose}>
         <ModalOverlay />
         <ModalContent>
@@ -282,7 +282,7 @@ const Forum = () => {
         </ModalContent>
       </Modal>
 
-      {/* Add Comment Modal */}
+      
       <Modal isOpen={isCommentAddModalOpen} onClose={onCommentAddClose}>
         <ModalOverlay />
         <ModalContent>
@@ -305,7 +305,7 @@ const Forum = () => {
         </ModalContent>
       </Modal>
 
-      {/* Comments Section */}
+      
       {selectedPostId && (
         <Box mt={6}>
           <Text fontSize="lg" mb={4}>Comments</Text>

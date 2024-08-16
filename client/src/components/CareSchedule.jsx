@@ -32,20 +32,14 @@ const CareSchedule = () => {
     const toast = useToast();
 
     useEffect(() => {
-        const fetchSchedulesAndPlants = async () => {
+        const fetchPlantsData = async () => {
             try {
-                if (plantId) { // Fetch schedules only if plantId is available
-                    const [scheduleData, plantData] = await Promise.all([
-                        fetchCareSchedules(plantId), // Pass plantId
-                        fetchPlants(),
-                    ]);
-                    setSchedules(scheduleData);
-                    setPlants(plantData);
-                }
+                const plantData = await fetchPlants();
+                setPlants(plantData);
             } catch (error) {
-                console.error('Error fetching data:', error);
+                console.error('Error fetching plants:', error);
                 toast({
-                    title: 'Error fetching data',
+                    title: 'Error fetching plants',
                     description: error.message,
                     status: 'error',
                     duration: 3000,
@@ -54,7 +48,31 @@ const CareSchedule = () => {
             }
         };
 
-        fetchSchedulesAndPlants();
+        fetchPlantsData();
+    }, [toast]);
+
+    useEffect(() => {
+        const fetchSchedulesForPlant = async () => {
+            if (plantId) {
+                try {
+                    const scheduleData = await fetchCareSchedules(plantId);
+                    setSchedules(scheduleData);
+                } catch (error) {
+                    console.error('Error fetching care schedules:', error);
+                    toast({
+                        title: 'Error fetching care schedules',
+                        description: error.message,
+                        status: 'error',
+                        duration: 3000,
+                        isClosable: true,
+                    });
+                }
+            } else {
+                setSchedules([]);
+            }
+        };
+
+        fetchSchedulesForPlant();
     }, [plantId, toast]);
 
     const handleAddSchedule = async (scheduleData) => {

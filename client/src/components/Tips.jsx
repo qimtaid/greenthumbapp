@@ -8,29 +8,29 @@ const Tips = () => {
     const { isOpen, onOpen, onClose } = useDisclosure();
     const [formTitle, setFormTitle] = useState('');
     const [formContent, setFormContent] = useState('');
-    const toast = useToast(); // Chakra UI toast for user feedback
+    const toast = useToast();
+
+    const fetchAllTips = async () => {
+        try {
+            const data = await fetchTips();
+            if (Array.isArray(data)) {
+                setTips(data);
+            } else {
+                throw new Error('Unexpected data format');
+            }
+        } catch (error) {
+            console.error('Error fetching tips:', error);
+            toast({
+                title: 'Fetch Error',
+                description: `Failed to fetch tips. ${error.message}`,
+                status: 'error',
+                duration: 5000,
+                isClosable: true,
+            });
+        }
+    };
 
     useEffect(() => {
-        const fetchAllTips = async () => {
-            try {
-                const data = await fetchTips();
-                if (Array.isArray(data)) {
-                    setTips(data);
-                } else {
-                    throw new Error('Unexpected data format');
-                }
-            } catch (error) {
-                console.error('Error fetching tips:', error);
-                toast({
-                    title: 'Fetch Error',
-                    description: `Failed to fetch tips. ${error.message}`,
-                    status: 'error',
-                    duration: 5000,
-                    isClosable: true,
-                });
-            }
-        };
-
         fetchAllTips();
     }, []);
 
@@ -57,11 +57,10 @@ const Tips = () => {
             const newTip = { title: formTitle, content: formContent, author_id: 1 }; // Replace with actual author_id if available
             if (editingTip) {
                 await updateTip(editingTip.id, newTip);
-                setTips(tips.map(tip => (tip.id === editingTip.id ? { ...tip, ...newTip } : tip)));
             } else {
-                const addedTip = await addTip(newTip);
-                setTips([...tips, addedTip]);
+                await addTip(newTip);
             }
+            await fetchAllTips();
             toast({
                 title: editingTip ? 'Tip Updated' : 'Tip Added',
                 description: editingTip ? 'Your tip has been updated successfully.' : 'Your new tip has been added.',
@@ -85,7 +84,7 @@ const Tips = () => {
     const handleDelete = async (id) => {
         try {
             await deleteTip(id);
-            setTips(tips.filter(tip => tip.id !== id));
+            await fetchAllTips();
             toast({
                 title: 'Tip Deleted',
                 description: 'The tip has been deleted successfully.',

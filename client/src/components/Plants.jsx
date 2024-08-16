@@ -57,19 +57,31 @@ const Plants = () => {
       setPlants(data);
     } catch (error) {
       console.error('Error fetching plants:', error);
-      setPlants([]); // Set to an empty array in case of an error
+      toast({
+        title: 'Error fetching plants.',
+        description: 'There was an error fetching the plant data.',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+      setPlants([]);
     }
   };
 
   const handleAddPlant = async () => {
-    const formData = {
-      name: newPlant.name,
-      description: newPlant.description,
-      img_url: newPlant.img_url,
-    };
+    if (!newPlant.name || !newPlant.img_url) {
+      toast({
+        title: 'Validation Error',
+        description: 'Both plant name and image URL are required.',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
 
     try {
-      await addPlant(formData);
+      await addPlant(newPlant);
       toast({
         title: 'Plant added.',
         description: 'The plant has been successfully added.',
@@ -94,6 +106,17 @@ const Plants = () => {
   };
 
   const handleUpdatePlant = async (plant) => {
+    if (!plant.name || !plant.img_url) {
+      toast({
+        title: 'Validation Error',
+        description: 'Both plant name and image URL are required.',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+
     try {
       await updatePlant(plant.id, plant);
       toast({
@@ -156,7 +179,7 @@ const Plants = () => {
       <VStack
         spacing={4}
         align="center"
-        bg="teal.500" // Solid background color
+        bg="teal.500"
         color="white"
         borderRadius="md"
         p={4}
