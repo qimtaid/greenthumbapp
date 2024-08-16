@@ -1,3 +1,4 @@
+from datetime import datetime
 from flask import Flask, request, send_from_directory, jsonify, make_response, url_for
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
@@ -161,74 +162,160 @@ def delete_plant(plant_id):
     
     return jsonify({"msg": "Plant deleted successfully"}), 200
 
-# Care Schedule Management
-@app.route('/plants/<int:plant_id>/schedule', methods=['POST'])
+# CareSchedule CRUD
+@app.route('/care_schedules', methods=['POST'])
 @jwt_required()
-def add_care_schedule(plant_id):
+def add_care_schedule():
     data = request.get_json()
+    print(f"Received data: {data}")  # Debugging line
+
     task = data.get('task')
     schedule_date = data.get('schedule_date')
-    new_schedule = CareSchedule(plant_id=plant_id, task=task, schedule_date=schedule_date)
+    interval = data.get('interval')
+    plant_id = data.get('plant_id')
+    user_id = get_jwt_identity()
+
+    if not task or not schedule_date or not plant_id:
+        return jsonify({"error": "Task, Schedule Date, and Plant are required"}), 400
+
+    # Check if the plant exists
+    plant = Plant.query.get(plant_id)
+    if not plant:
+        return jsonify({"error": "Plant not found"}), 404
+
+    new_schedule = CareSchedule(
+        task=task,
+        schedule_date=datetime.strptime(schedule_date, '%Y-%m-%d'),
+        interval=interval,
+        plant_id=plant_id,
+        user_id=user_id
+    )
     db.session.add(new_schedule)
     db.session.commit()
-    return jsonify({"msg": "Care schedule added successfully"}), 201
 
-@app.route('/plants/<int:plant_id>/schedule', methods=['GET'])
+    return jsonify({"msg": "Care schedule added successfully", "schedule": new_schedule.to_dict()}), 201
+
+
+@app.route('/care_schedules', methods=['GET', 'OPTIONS'])
 @jwt_required()
-def get_care_schedules(plant_id):
-    schedules = CareSchedule.query.filter_by(plant_id=plant_id).all()
-    return jsonify([{"id": schedule.id, "task": schedule.task, "schedule_date": schedule.schedule_date} for schedule in schedules]), 200
+def get_care_schedules():
+    if request.method == 'OPTIONS':
+        return jsonify({}), 200
+    
+    try:
+        user_id = get_jwt_identity()
+        schedules = CareSchedule.query.filter_by(user_id=user_id).all()
 
-# Tips Management
+        if not schedules:
+            return jsonify({"message": "No care schedules found."}), 404
+        
+        return jsonify([schedule.to_dict() for schedule in schedules]), 200
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/care_schedules/<int:id>', methods=['PATCH'])
+@jwt_required()
+def update_care_schedule(id):
+    schedule = CareSchedule.query.get_or_404(id)
+    user_id = get_jwt_identity()
+
+    if schedule.user_id != user_id:
+        return jsonify({"error": "Unauthorized access"}), 403
+
+    schedule.task = request.json.get('task', schedule.task)
+    schedule.schedule_date = datetime.strptime(request.json.get('schedule_date', schedule.schedule_date.strftime('%Y-%m-%d')), '%Y-%m-%d')
+    schedule.interval = request.json.get('interval', schedule.interval)
+    
+    db.session.commit()
+    return jsonify({"msg": "Care schedule updated successfully", "schedule": schedule.to_dict()}), 200
+
+@app.route('/care_schedules/<int:id>', methods=['DELETE'])
+@jwt_required()
+def delete_care_schedule(id):
+    schedule = CareSchedule.query.get_or_404(id)
+    user_id = get_jwt_identity()
+
+    if schedule.user_id != user_id:
+        return jsonify({"error": "Unauthorized access"}), 403
+
+    db.session.delete(schedule)
+    db.session.commit()
+    return jsonify({"msg": "Care schedule deleted successfully"}), 200
+
+# Route to fetch all tips
+@app.route('/tips', methods=['GET'])
+@jwt_required()
+def get_tips():
+    tips = Tip.query.all()
+    tips_list = [{'id': tip.id, 'title': tip.title, 'content': tip.content, 'author': tip.user.username} for tip in tips]
+    return jsonify(tips_list), 200
+
+# Route to add a new tip
 @app.route('/tips', methods=['POST'])
 @jwt_required()
 def add_tip():
-    data = request.get_json()
-    title = data.get('title')
-    content = data.get('content')
-    author_id = get_jwt_identity()
-    new_tip = Tip(title=title, content=content, author_id=author_id)
+    data = request.json
+    current_user_id = get_jwt_identity()
+    user = User.query.get(current_user_id)
+    
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+
+    new_tip = Tip(title=data['title'], content=data['content'], user_id=user.id)
     db.session.add(new_tip)
     db.session.commit()
-    return jsonify({"msg": "Tip added successfully"}), 201
 
-@app.route('/tips', methods=['GET'])
-def get_tips():
-    tips = Tip.query.all()
-    return jsonify([{"id": tip.id, "title": tip.title, "content": tip.content} for tip in tips]), 200
+    return jsonify({'message': 'Tip added successfully'}), 201
 
+# Route to update an existing tip
 @app.route('/tips/<int:tip_id>', methods=['PATCH'])
 @jwt_required()
 def update_tip(tip_id):
-    data = request.get_json()
-    tip = Tip.query.get_or_404(tip_id)
-    user_id = get_jwt_identity()
-    
-    if tip.author_id != user_id:
-        return jsonify({"msg": "Unauthorized"}), 403
-    
-    if 'title' in data:
-        tip.title = data['title']
-    if 'content' in data:
-        tip.content = data['content']
-    
-    db.session.commit()
-    
-    return jsonify({"msg": "Tip updated successfully"}), 200
+    try:
+        data = request.json
+        tip = Tip.query.get(tip_id)
+        if not tip:
+            return jsonify({'error': 'Tip not found'}), 404
 
+        current_user_id = get_jwt_identity()
+
+        if tip.user_id != current_user_id:
+            return jsonify({'error': 'Unauthorized action'}), 403
+
+        if 'title' in data:
+            tip.title = data['title']
+        if 'content' in data:
+            tip.content = data['content']
+
+        db.session.commit()
+
+        return jsonify({'message': 'Tip updated successfully'}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+# Route to delete a tip
 @app.route('/tips/<int:tip_id>', methods=['DELETE'])
 @jwt_required()
 def delete_tip(tip_id):
-    tip = Tip.query.get_or_404(tip_id)
-    user_id = get_jwt_identity()
-    
-    if tip.author_id != user_id:
-        return jsonify({"msg": "Unauthorized"}), 403
-    
-    db.session.delete(tip)
-    db.session.commit()
-    
-    return jsonify({"msg": "Tip deleted successfully"}), 200
+    try:
+        tip = Tip.query.get(tip_id)
+        if not tip:
+            return jsonify({'error': 'Tip not found'}), 404
+
+        current_user_id = get_jwt_identity()
+
+        if tip.user_id != current_user_id:
+            return jsonify({'error': 'Unauthorized action'}), 403
+
+        db.session.delete(tip)
+        db.session.commit()
+
+        return jsonify({'message': 'Tip deleted successfully'}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 
 # Forum Post Management
 @app.route('/forum', methods=['POST'])

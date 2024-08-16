@@ -213,6 +213,183 @@ export async function deletePlant(plantId) {
     }
 }
 
+// Function to add a new care schedule
+export async function addCareSchedule(careScheduleData) {
+    try {
+        const response = await fetch(`${API_BASE_URL}/care_schedules`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                ...getAuthHeaders(),
+            },
+            credentials: 'include',
+            body: JSON.stringify(careScheduleData),
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to add care schedule');
+        }
+
+        return await response.json();
+    } catch (error) {
+        console.error('Error adding care schedule:', error);
+        throw error;
+    }
+}
+
+// Function to fetch all care schedules
+export async function fetchCareSchedules() {
+    try {
+        const response = await fetch(`${API_BASE_URL}/care_schedules`, {
+            method: 'GET',
+            credentials: 'include',
+            headers: getAuthHeaders(),
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to fetch care schedules');
+        }
+
+        return await response.json();
+    } catch (error) {
+        console.error('Error fetching care schedules:', error);
+        throw error;
+    }
+}
+
+// Function to update an existing care schedule
+export async function updateCareSchedule(scheduleId, careScheduleData) {
+    try {
+        const response = await fetch(`${API_BASE_URL}/care_schedules/${scheduleId}`, {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
+                ...getAuthHeaders(),
+            },
+            credentials: 'include',
+            body: JSON.stringify(careScheduleData),
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to update care schedule');
+        }
+
+        return await response.json();
+    } catch (error) {
+        console.error('Error updating care schedule:', error);
+        throw error;
+    }
+}
+
+// Function to delete a care schedule
+export async function deleteCareSchedule(scheduleId) {
+    try {
+        const response = await fetch(`${API_BASE_URL}/care_schedules/${scheduleId}`, {
+            method: 'DELETE',
+            credentials: 'include',
+            headers: getAuthHeaders(),
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to delete care schedule');
+        }
+
+        return await response.json();
+    } catch (error) {
+        console.error('Error deleting care schedule:', error);
+        throw error;
+    }
+}
+
+// Function to add a new tip
+export async function addTip(tipData) {
+    try {
+        const response = await fetch(`${API_BASE_URL}/tips`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                ...getAuthHeaders(),
+            },
+            credentials: 'include',
+            body: JSON.stringify(tipData),
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to add tip');
+        }
+
+        return await response.json();
+    } catch (error) {
+        console.error('Error adding tip:', error);
+        throw error;
+    }
+}
+
+// Function to fetch all tips
+export async function fetchTips() {
+    try {
+        const response = await fetch(`${API_BASE_URL}/tips`, {
+            method: 'GET',
+            credentials: 'include',
+            headers: getAuthHeaders(),
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to fetch tips');
+        }
+
+        return await response.json();
+    } catch (error) {
+        console.error('Error fetching tips:', error);
+        throw error;
+    }
+}
+
+// Function to update an existing tip
+export async function updateTip(tipId, tipData) {
+    try {
+        const response = await fetch(`${API_BASE_URL}/tips/${tipId}`, {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
+                ...getAuthHeaders(),
+            },
+            credentials: 'include',
+            body: JSON.stringify(tipData),
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to update tip');
+        }
+
+        return await response.json();
+    } catch (error) {
+        console.error('Error updating tip:', error);
+        throw error;
+    }
+}
+
+// Function to delete a tip
+export async function deleteTip(tipId) {
+    try {
+        const response = await fetch(`${API_BASE_URL}/tips/${tipId}`, {
+            method: 'DELETE',
+            credentials: 'include',
+            headers: getAuthHeaders(),
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to delete tip');
+        }
+
+        return await response.json();
+    } catch (error) {
+        console.error('Error deleting tip:', error);
+        throw error;
+    }
+}
+
+
 // Function to add a new layout
 export async function addLayout(layoutData) {
     try {

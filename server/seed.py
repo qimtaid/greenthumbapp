@@ -52,21 +52,24 @@ def seed_database():
 
         db.session.commit()
 
-        # Create sample care schedules
+        # Create sample care schedules with user_id
         care_schedules = [
-            {'plant_name': 'Tomato', 'task': 'Watering', 'schedule_date': datetime(2024, 8, 1)},
-            {'plant_name': 'Basil', 'task': 'Pruning', 'schedule_date': datetime(2024, 8, 2)}
+            {'plant_name': 'Tomato', 'task': 'Watering', 'schedule_date': datetime(2024, 8, 1), 'interval': 'Daily', 'user': 'Riko-04'},
+            {'plant_name': 'Basil', 'task': 'Pruning', 'schedule_date': datetime(2024, 8, 2), 'interval': 'Fortnightly', 'user': 'testuser'}
         ]
 
         for schedule_info in care_schedules:
             plant = Plant.query.filter_by(name=schedule_info['plant_name']).first()
-            if plant:
+            user = User.query.filter_by(username=schedule_info['user']).first() if plant else None
+            if plant and user:
                 schedule = CareSchedule.query.filter_by(plant_id=plant.id, task=schedule_info['task']).first()
                 if not schedule:
                     schedule = CareSchedule(
                         plant_id=plant.id,
                         task=schedule_info['task'],
-                        schedule_date=schedule_info['schedule_date']
+                        schedule_date=schedule_info['schedule_date'],
+                        interval=schedule_info['interval'],
+                        user_id=user.id
                     )
                     db.session.add(schedule)
 
@@ -79,18 +82,25 @@ def seed_database():
         ]
 
         for tip_info in tip_data:
+            # Find the user by username
             user = User.query.filter_by(username=tip_info['author']).first()
+            
+            # Ensure the user exists before creating the tip
             if user:
-                tip = Tip.query.filter_by(title=tip_info['title'], author_id=user.id).first()
+                # Check if the tip already exists for this author
+                tip = Tip.query.filter_by(title=tip_info['title'], user_id=user.id).first()
+                
+                # If the tip doesn't exist, create it
                 if not tip:
                     tip = Tip(
                         title=tip_info['title'],
                         content=tip_info['content'],
-                        author_id=user.id
+                        user_id=user.id
                     )
                     db.session.add(tip)
 
         db.session.commit()
+
 
         # Create sample forum posts
         post_data = [
