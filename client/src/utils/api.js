@@ -2,9 +2,10 @@ const API_BASE_URL = 'http://127.0.0.1:5000';
 
 // Helper function to set the Authorization header
 function getAuthHeaders() {
-    const token = localStorage.getItem('access_token');
+    const token = localStorage.getItem('token');
     return {
         'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
     };
 }
 
@@ -31,7 +32,7 @@ export async function login(email, password) {
 
         // Save token to localStorage and set as a cookie
         if (data.access_token) {
-            localStorage.setItem('access_token', data.access_token);
+            localStorage.setItem('token', data.access_token);
             document.cookie = `access_token_cookie=${data.access_token}; path=/;`;
         }
 
@@ -71,7 +72,7 @@ export const logout = async () => {
             method: 'POST',
             credentials: 'include',
         });
-        localStorage.removeItem('access_token');
+        localStorage.removeItem('token');
         document.cookie = 'access_token_cookie=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
     } catch (error) {
         console.error('Error logging out:', error);
@@ -111,7 +112,7 @@ export async function refreshToken() {
         }
 
         const data = await response.json();
-        localStorage.setItem('access_token', data.access_token);
+        localStorage.setItem('token', data.access_token);
         document.cookie = `access_token_cookie=${data.access_token}; path=/;`;
 
         return data.access_token;
@@ -148,10 +149,7 @@ export async function addPlant(formData) {
     try {
         const response = await fetch(`${API_BASE_URL}/plants`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                ...getAuthHeaders(),
-            },
+            headers: getAuthHeaders(),
             credentials: 'include',
             body: JSON.stringify(formData),  // Send as JSON instead of FormData
         });
@@ -167,17 +165,12 @@ export async function addPlant(formData) {
     }
 }
 
-
-
 // Function to update an existing plant
 export async function updatePlant(plantId, plantData) {
     try {
         const response = await fetch(`${API_BASE_URL}/plants/${plantId}`, {
             method: 'PATCH',
-            headers: {
-                'Content-Type': 'application/json',
-                ...getAuthHeaders(),
-            },
+            headers: getAuthHeaders(),
             credentials: 'include',
             body: JSON.stringify(plantData),
         });
@@ -218,10 +211,7 @@ export async function addCareSchedule(careScheduleData) {
     try {
         const response = await fetch(`${API_BASE_URL}/care_schedules`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                ...getAuthHeaders(),
-            },
+            headers: getAuthHeaders(),
             credentials: 'include',
             body: JSON.stringify(careScheduleData),
         });
@@ -262,10 +252,7 @@ export async function updateCareSchedule(scheduleId, careScheduleData) {
     try {
         const response = await fetch(`${API_BASE_URL}/care_schedules/${scheduleId}`, {
             method: 'PATCH',
-            headers: {
-                'Content-Type': 'application/json',
-                ...getAuthHeaders(),
-            },
+            headers: getAuthHeaders(),
             credentials: 'include',
             body: JSON.stringify(careScheduleData),
         });
@@ -306,10 +293,7 @@ export async function addTip(tipData) {
     try {
         const response = await fetch(`${API_BASE_URL}/tips`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                ...getAuthHeaders(),
-            },
+            headers: getAuthHeaders(),
             credentials: 'include',
             body: JSON.stringify(tipData),
         });
@@ -350,10 +334,7 @@ export async function updateTip(tipId, tipData) {
     try {
         const response = await fetch(`${API_BASE_URL}/tips/${tipId}`, {
             method: 'PATCH',
-            headers: {
-                'Content-Type': 'application/json',
-                ...getAuthHeaders(),
-            },
+            headers: getAuthHeaders(),
             credentials: 'include',
             body: JSON.stringify(tipData),
         });
@@ -389,16 +370,12 @@ export async function deleteTip(tipId) {
     }
 }
 
-
 // Function to add a new layout
 export async function addLayout(layoutData) {
     try {
         const response = await fetch(`${API_BASE_URL}/layouts`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                ...getAuthHeaders(),
-            },
+            headers: getAuthHeaders(),
             credentials: 'include',
             body: JSON.stringify(layoutData),
         });
@@ -439,10 +416,7 @@ export async function updateLayout(layoutId, layoutData) {
     try {
         const response = await fetch(`${API_BASE_URL}/layouts/${layoutId}`, {
             method: 'PATCH',
-            headers: {
-                'Content-Type': 'application/json',
-                ...getAuthHeaders(),
-            },
+            headers: getAuthHeaders(),
             credentials: 'include',
             body: JSON.stringify(layoutData),
         });
@@ -478,22 +452,82 @@ export async function deleteLayout(layoutId) {
     }
 }
 
-// Function to fetch a specific layout
-export async function fetchLayout(layoutId) {
-    try {
-        const response = await fetch(`${API_BASE_URL}/layouts/${layoutId}`, {
-            method: 'GET',
-            credentials: 'include',
-            headers: getAuthHeaders(),
-        });
 
-        if (!response.ok) {
-            throw new Error('Failed to fetch layout');
-        }
 
-        return await response.json();
-    } catch (error) {
-        console.error('Error fetching layout:', error);
-        throw error;
+export const fetchForumPosts = async () => {
+    const response = await fetch(`${API_BASE_URL}/forum/posts`, {
+      method: 'GET',
+      credentials: 'include',
+    });
+    if (!response.ok) {
+      throw new Error('Failed to fetch posts');
     }
-}
+    return await response.json();
+  };
+  
+  export const addForumPost = async (post) => {
+    const response = await fetch(`${API_BASE_URL}/forum/posts`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(post),
+    });
+    if (!response.ok) {
+      throw new Error('Failed to add post');
+    }
+    return await response.json();
+  };
+  
+  export const updateForumPost = async (postId, post) => {
+    const response = await fetch(`${API_BASE_URL}/forum/posts/${postId}`, {
+      method: 'PUT',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(post),
+    });
+    if (!response.ok) {
+      throw new Error('Failed to update post');
+    }
+    return await response.json();
+  };
+  
+  export const deleteForumPost = async (postId) => {
+    const response = await fetch(`${API_BASE_URL}/forum/posts/${postId}`, {
+      method: 'DELETE',
+      credentials: 'include',
+    });
+    if (!response.ok) {
+      throw new Error('Failed to delete post');
+    }
+    return await response.json();
+  };
+  
+  export const fetchComments = async (postId) => {
+    const response = await fetch(`${API_BASE_URL}/forum/posts/${postId}/comments`, {
+      method: 'GET',
+      credentials: 'include',
+    });
+    if (!response.ok) {
+      throw new Error('Failed to fetch comments');
+    }
+    return await response.json();
+  };
+  
+  export const addComment = async (postId, comment) => {
+    const response = await fetch(`${API_BASE_URL}/forum/posts/${postId}/comments`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(comment),
+    });
+    if (!response.ok) {
+      throw new Error('Failed to add comment');
+    }
+    return await response.json();
+  };

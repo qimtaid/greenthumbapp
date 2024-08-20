@@ -1,12 +1,13 @@
 from datetime import datetime
-from flask import Flask, request, send_from_directory, jsonify, make_response, url_for
+import json
+from flask import Flask, request, send_from_directory, jsonify, make_response, url_for, abort
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_jwt_extended import JWTManager, create_access_token, create_refresh_token, jwt_required, get_jwt_identity
 from flask_cors import CORS
 from werkzeug.utils import secure_filename
 import os
-from models import db, User, Plant, CareSchedule, Tip, ForumPost, GardenLayout
+from models import db, User, Plant, CareSchedule, Tip, Layout
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///greenthumb.db'
@@ -317,109 +318,123 @@ def delete_tip(tip_id):
         return jsonify({'error': str(e)}), 500
 
 
-# Forum Post Management
-@app.route('/forum', methods=['POST'])
+# Garden Layout Management
+@app.route('/layouts', methods=['GET'])
 @jwt_required()
-def add_forum_post():
-    data = request.get_json()
-    title = data.get('title')
-    content = data.get('content')
-    author_id = get_jwt_identity()
-    new_post = ForumPost(title=title, content=content, author_id=author_id)
-    db.session.add(new_post)
-    db.session.commit()
-    return jsonify({"msg": "Forum post added successfully"}), 201
+def get_layouts():
+    user_id = get_jwt_identity()
+    layouts = Layout.query.filter_by(user_id=user_id).all()
+    return jsonify([layout.to_dict() for layout in layouts]), 200
 
-@app.route('/forum', methods=['GET'])
+@app.route('/layouts', methods=['POST'])
+@jwt_required()
+def create_layout():
+    data = request.json
+    if not data or 'name' not in data or 'layout_data' not in data:
+        abort(400, description='Missing required fields')
+
+    user_id = get_jwt_identity()
+    try:
+        layout_data_str = json.dumps(data['layout_data'])  # Serialize layout_data to JSON string
+    except (TypeError, ValueError):
+        abort(400, description='Invalid layout data format')
+
+    layout = Layout(name=data['name'], layout_data=layout_data_str, user_id=user_id)
+    db.session.add(layout)
+    db.session.commit()
+    return jsonify(layout.to_dict()), 201
+
+@app.route('/layouts/<int:id>', methods=['PATCH'])
+@jwt_required()
+def update_layout(id):
+    user_id = get_jwt_identity()
+    layout = Layout.query.filter_by(id=id, user_id=user_id).first()
+    if not layout:
+        abort(404, description='Layout not found')
+
+    data = request.json
+    if 'name' in data:
+        layout.name = data['name']
+    if 'layout_data' in data:
+        try:
+            layout.layout_data = json.dumps(data['layout_data'])  # Serialize updated layout_data
+        except (TypeError, ValueError):
+            abort(400, description='Invalid layout data format')
+
+    db.session.commit()
+    return jsonify(layout.to_dict()), 200
+
+@app.route('/layouts/<int:id>', methods=['DELETE'])
+@jwt_required()
+def delete_layout(id):
+    user_id = get_jwt_identity()
+    layout = Layout.query.filter_by(id=id, user_id=user_id).first()
+    if not layout:
+        abort(404, description='Layout not found')
+    
+    db.session.delete(layout)
+    db.session.commit()
+    return '', 204
+
+
+""" # Forum Posts Management
+@app.route('/forum/posts', methods=['GET'])
 def get_forum_posts():
     posts = ForumPost.query.all()
-    return jsonify([{"id": post.id, "title": post.title, "content": post.content} for post in posts]), 200
+    return jsonify([post.to_dict() for post in posts])
 
-@app.route('/forum/<int:post_id>', methods=['PATCH'])
+@app.route('/forum/posts', methods=['POST'])
+@jwt_required()
+def create_forum_post():
+    data = request.get_json()
+    user_id = get_jwt_identity()
+    new_post = ForumPost(
+        title=data['title'],
+        content=data['content'],
+        user_id=user_id
+    )
+    db.session.add(new_post)
+    db.session.commit()
+    return jsonify(new_post.to_dict()), 201
+
+@app.route('/forum/posts/<int:post_id>', methods=['PUT'])
 @jwt_required()
 def update_forum_post(post_id):
     data = request.get_json()
     post = ForumPost.query.get_or_404(post_id)
-    user_id = get_jwt_identity()
-    
-    if post.author_id != user_id:
-        return jsonify({"msg": "Unauthorized"}), 403
-    
-    if 'title' in data:
-        post.title = data['title']
-    if 'content' in data:
-        post.content = data['content']
-    
+    post.title = data['title']
+    post.content = data['content']
     db.session.commit()
-    
-    return jsonify({"msg": "Forum post updated successfully"}), 200
+    return jsonify(post.to_dict())
 
-@app.route('/forum/<int:post_id>', methods=['DELETE'])
+@app.route('/forum/posts/<int:post_id>', methods=['DELETE'])
 @jwt_required()
 def delete_forum_post(post_id):
     post = ForumPost.query.get_or_404(post_id)
-    user_id = get_jwt_identity()
-    
-    if post.author_id != user_id:
-        return jsonify({"msg": "Unauthorized"}), 403
-    
     db.session.delete(post)
     db.session.commit()
-    
-    return jsonify({"msg": "Forum post deleted successfully"}), 200
+    return jsonify({'message': 'Post deleted successfully'})
 
-# Garden Layout Management
-@app.route('/layouts', methods=['POST'])
+@app.route('/forum/posts/<int:post_id>/comments', methods=['GET'])
+def get_comments(post_id):
+    comments = Comment.query.filter_by(post_id=post_id).all()
+    return jsonify([comment.to_dict() for comment in comments])
+
+@app.route('/forum/posts/<int:post_id>/comments', methods=['POST'])
 @jwt_required()
-def add_garden_layout():
+def add_comment(post_id):
     data = request.get_json()
-    name = data.get('name')
-    layout_data = data.get('layout_data')
     user_id = get_jwt_identity()
-    new_layout = GardenLayout(name=name, user_id=user_id, layout_data=layout_data)
-    db.session.add(new_layout)
+    new_comment = Comment(
+        content=data['content'],
+        post_id=post_id,
+        user_id=user_id
+    )
+    db.session.add(new_comment)
     db.session.commit()
-    return jsonify({"msg": "Garden layout added successfully"}), 201
+    return jsonify(new_comment.to_dict()), 201 """
 
-@app.route('/layouts', methods=['GET'])
-@jwt_required()
-def get_garden_layouts():
-    user_id = get_jwt_identity()
-    layouts = GardenLayout.query.filter_by(user_id=user_id).all()
-    return jsonify([{"id": layout.id, "name": layout.name, "layout_data": layout.layout_data} for layout in layouts]), 200
 
-@app.route('/layouts/<int:layout_id>', methods=['PATCH'])
-@jwt_required()
-def update_garden_layout(layout_id):
-    data = request.get_json()
-    layout = GardenLayout.query.get_or_404(layout_id)
-    user_id = get_jwt_identity()
-    
-    if layout.user_id != user_id:
-        return jsonify({"msg": "Unauthorized"}), 403
-    
-    if 'name' in data:
-        layout.name = data['name']
-    if 'layout_data' in data:
-        layout.layout_data = data['layout_data']
-    
-    db.session.commit()
-    
-    return jsonify({"msg": "Garden layout updated successfully"}), 200
-
-@app.route('/layouts/<int:layout_id>', methods=['DELETE'])
-@jwt_required()
-def delete_garden_layout(layout_id):
-    layout = GardenLayout.query.get_or_404(layout_id)
-    user_id = get_jwt_identity()
-    
-    if layout.user_id != user_id:
-        return jsonify({"msg": "Unauthorized"}), 403
-    
-    db.session.delete(layout)
-    db.session.commit()
-    
-    return jsonify({"msg": "Garden layout deleted successfully"}), 200
 
 # File upload endpoint
 @app.route('/uploads/<filename>')

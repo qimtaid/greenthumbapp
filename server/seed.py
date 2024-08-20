@@ -1,12 +1,15 @@
 from app import app, db
-from models import User, Plant, CareSchedule, Tip, ForumPost, GardenLayout
+from models import User, Plant, CareSchedule, Tip, Layout
 from datetime import datetime
+import json
 
 def seed_database():
+    # The entire seed process is wrapped in the application context
     with app.app_context():
+        # Create all tables if they don't exist
         db.create_all()
 
-        # Create sample users
+        # Sample users data
         user_data = [
             {'username': 'Riko-04', 'email': 'echoge11@gmail.com', 'password': 'Kiptoosky@04'},
             {'username': 'testuser', 'email': 'testuser@gmail.com', 'password': 'password123'}
@@ -18,10 +21,9 @@ def seed_database():
                 user = User(username=user_info['username'], email=user_info['email'])
                 user.set_password(user_info['password'])
                 db.session.add(user)
-        
         db.session.commit()
 
-        # Create sample plants with img_url
+        # Sample plants data with images
         plant_data = [
             {
                 'name': 'Tomato',
@@ -49,10 +51,9 @@ def seed_database():
                         user_id=user.id
                     )
                     db.session.add(plant)
-
         db.session.commit()
 
-        # Create sample care schedules with user_id
+        # Sample care schedules
         care_schedules = [
             {'plant_name': 'Tomato', 'task': 'Watering', 'schedule_date': datetime(2024, 8, 1), 'interval': 'Daily', 'user': 'Riko-04'},
             {'plant_name': 'Basil', 'task': 'Pruning', 'schedule_date': datetime(2024, 8, 2), 'interval': 'Fortnightly', 'user': 'testuser'}
@@ -72,25 +73,18 @@ def seed_database():
                         user_id=user.id
                     )
                     db.session.add(schedule)
-
         db.session.commit()
 
-        # Create sample tips
+        # Sample tips data
         tip_data = [
             {'title': 'Watering Tips', 'content': 'Water your plants regularly.', 'author': 'Riko-04'},
             {'title': 'Pruning Tips', 'content': 'Prune your plants to promote growth.', 'author': 'testuser'}
         ]
 
         for tip_info in tip_data:
-            # Find the user by username
             user = User.query.filter_by(username=tip_info['author']).first()
-            
-            # Ensure the user exists before creating the tip
             if user:
-                # Check if the tip already exists for this author
                 tip = Tip.query.filter_by(title=tip_info['title'], user_id=user.id).first()
-                
-                # If the tip doesn't exist, create it
                 if not tip:
                     tip = Tip(
                         title=tip_info['title'],
@@ -98,11 +92,9 @@ def seed_database():
                         user_id=user.id
                     )
                     db.session.add(tip)
-
         db.session.commit()
 
-
-        # Create sample forum posts
+        """ # Sample forum posts
         post_data = [
             {'title': 'Help with tomatoes', 'content': 'My tomatoes are not growing well.', 'author': 'Riko-04'},
             {'title': 'Basil care', 'content': 'How do I take care of basil?', 'author': 'testuser'}
@@ -119,30 +111,59 @@ def seed_database():
                         author_id=user.id
                     )
                     db.session.add(post)
+        db.session.commit() """
 
-        db.session.commit()
-
-        # Create sample garden layouts
+        # Seed data for garden layouts
         layout_data = [
-            {'name': 'My Vegetable Garden', 'user': 'Riko-04', 'layout_data': '{"beds": [{"name": "Bed 1", "plants": ["Tomato", "Basil"]}] }'},
-            {'name': 'Herb Garden', 'user': 'testuser', 'layout_data': '{"beds": [{"name": "Bed 1", "plants": ["Basil"]}] }'}
+            {
+                'name': 'My Vegetable Garden',
+                'user': 'Riko-04',
+                'layout_data': [
+                    {
+                        'plant_id': 1,
+                        'name': 'Tomato',
+                        'img_url': 'https://plus.unsplash.com/premium_photo-1669906333449-5fc2c47cd8ec?q=80&w=387&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
+                        'position': {'x': 0, 'y': 1}
+                    }
+                ],
+                'created_at': datetime(2024, 9, 18),
+                'updated_at': datetime(2024, 10, 18)
+            },
+            {
+                'name': 'Herb Garden',
+                'user': 'testuser',
+                'layout_data': [
+                    {
+                        'plant_id': 2,
+                        'name': 'Basil',
+                        'img_url': 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRwl3tBPY4s-7hS8sRWGPQgeJ1DX0vBhDpMug&usqp=CAU',
+                        'position': {'x': 0, 'y': 1}
+                    }
+                ],
+                'created_at': datetime(2024, 9, 18),
+                'updated_at': datetime(2024, 10, 18)
+            }
         ]
 
+        # Adding the seed data to the database
         for layout_info in layout_data:
             user = User.query.filter_by(username=layout_info['user']).first()
             if user:
-                layout = GardenLayout.query.filter_by(name=layout_info['name'], user_id=user.id).first()
+                layout = Layout.query.filter_by(name=layout_info['name'], user_id=user.id).first()
                 if not layout:
-                    layout = GardenLayout(
+                    layout = Layout(
                         name=layout_info['name'],
+                        layout_data=json.dumps(layout_info['layout_data']),  # Convert layout_data to JSON string here
                         user_id=user.id,
-                        layout_data=layout_info['layout_data']
+                        created_at=layout_info['created_at'],
+                        updated_at=layout_info['updated_at']
                     )
                     db.session.add(layout)
 
         db.session.commit()
 
-        print("Database seeded successfully!")
+
+    print("Database seeded successfully!")
 
 if __name__ == '__main__':
     seed_database()

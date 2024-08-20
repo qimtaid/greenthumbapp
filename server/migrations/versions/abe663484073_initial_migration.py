@@ -1,8 +1,8 @@
-"""Initial migrate
+"""Initial migration
 
-Revision ID: 501842893cff
+Revision ID: abe663484073
 Revises: 
-Create Date: 2024-08-16 07:46:53.502304
+Create Date: 2024-08-20 17:17:05.252307
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = '501842893cff'
+revision = 'abe663484073'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -27,19 +27,13 @@ def upgrade():
     sa.UniqueConstraint('email'),
     sa.UniqueConstraint('username')
     )
-    op.create_table('forum_post',
+    op.create_table('layout',
     sa.Column('id', sa.Integer(), nullable=False),
-    sa.Column('title', sa.String(length=128), nullable=False),
-    sa.Column('content', sa.Text(), nullable=False),
-    sa.Column('author_id', sa.Integer(), nullable=True),
-    sa.ForeignKeyConstraint(['author_id'], ['user.id'], ),
-    sa.PrimaryKeyConstraint('id')
-    )
-    op.create_table('garden_layout',
-    sa.Column('id', sa.Integer(), nullable=False),
-    sa.Column('name', sa.String(length=64), nullable=False),
-    sa.Column('user_id', sa.Integer(), nullable=False),
+    sa.Column('name', sa.String(length=100), nullable=False),
     sa.Column('layout_data', sa.Text(), nullable=False),
+    sa.Column('user_id', sa.Integer(), nullable=False),
+    sa.Column('created_at', sa.DateTime(), nullable=True),
+    sa.Column('updated_at', sa.DateTime(), nullable=True),
     sa.ForeignKeyConstraint(['user_id'], ['user.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
@@ -80,7 +74,6 @@ def downgrade():
     op.drop_table('care_schedule')
     op.drop_table('tip')
     op.drop_table('plant')
-    op.drop_table('garden_layout')
-    op.drop_table('forum_post')
+    op.drop_table('layout')
     op.drop_table('user')
     # ### end Alembic commands ###

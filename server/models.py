@@ -1,4 +1,5 @@
 from datetime import datetime
+import json
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_sqlalchemy import SQLAlchemy
 
@@ -12,9 +13,8 @@ class User(db.Model):
 
     # Relationships
     plants = db.relationship('Plant', backref='user', lazy=True)
-    tips = db.relationship('Tip', backref='author', lazy=True)  # Using 'author' as the backref
-    forum_posts = db.relationship('ForumPost', backref='author', lazy=True)
-    garden_layouts = db.relationship('GardenLayout', backref='user', lazy=True)
+    tips = db.relationship('Tip', backref='user', lazy=True)
+    layouts = db.relationship('Layout', backref='user', lazy=True)
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
@@ -61,9 +61,6 @@ class Tip(db.Model):
     content = db.Column(db.Text, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    
-    # No need for an additional backref here, as it's already handled in User
-    user = db.relationship('User')
 
     def to_dict(self):
         return {
@@ -75,20 +72,61 @@ class Tip(db.Model):
         }
 
 
-class ForumPost(db.Model):
+""" class ForumPost(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    title = db.Column(db.String(128), nullable=False)
+    title = db.Column(db.String(255), nullable=False)
     content = db.Column(db.Text, nullable=False)
-    author_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    timestamp = db.Column(db.DateTime, default=db.func.now())
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    
+    # Relationship to User with a unique backref name
+    author = db.relationship('User', backref=db.backref('posts', lazy=True))
 
-    def __repr__(self):
-        return f'<ForumPost {self.title}>'
+    comments = db.relationship('Comment', backref='post', lazy=True, cascade='all, delete-orphan')
 
-class GardenLayout(db.Model):
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'title': self.title,
+            'content': self.content,
+            'timestamp': self.timestamp,
+            'author': self.author.username,
+            'comments': [comment.to_dict() for comment in self.comments],
+        } """
+
+
+    
+
+""" class Comment(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(64), nullable=False)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)  # Ensure this column is not nullable
-    layout_data = db.Column(db.Text, nullable=False)
+    content = db.Column(db.Text, nullable=False)
+    timestamp = db.Column(db.DateTime, default=db.func.now())
+    post_id = db.Column(db.Integer, db.ForeignKey('forum_post.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
 
-    def __repr__(self):
-        return f'<GardenLayout {self.name}>'
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'content': self.content,
+            'timestamp': self.timestamp,
+            'author': self.author.username,
+        } """
+
+
+class Layout(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    layout_data = db.Column(db.Text, nullable=False)  # Store the layout data as a JSON string
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'name': self.name,
+            'layout_data': json.loads(self.layout_data), 
+            'user_id': self.user_id,
+            'created_at': self.created_at,
+            'updated_at': self.updated_at
+        }
