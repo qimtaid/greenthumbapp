@@ -21,7 +21,7 @@ app.config['JWT_COOKIE_CSRF_PROTECT'] = False
 app.config['UPLOAD_FOLDER'] = 'uploads' 
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # Limit upload size to 16 MB
 
-CORS(app, supports_credentials=True)
+CORS(app, supports_credentials=True, origins=["greenthumbapp-jozxzp24j-riko-04s-projects.vercel.app"])
 
 db.init_app(app)
 migrate = Migrate(app, db)
