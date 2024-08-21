@@ -5,8 +5,8 @@ import backgroundImage from '../assets/aboutuslogo.jpg';
 
 // Import member images
 import ericImage from '../assets/Riko.jpg';
-import danImage from '../assets/DanK.png';
-import dorcasImage from '../assets/Dorcas.jpg';
+import danImage from '../assets/dankk.jpg';
+import dorcasImage from '../assets/dorcasA.jpg';
 
 const AboutUs = () => {
   const cardBg = useColorModeValue('white', 'gray.800');

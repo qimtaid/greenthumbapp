@@ -2,9 +2,10 @@ const API_BASE_URL = 'http://127.0.0.1:5000';
 
 // Helper function to set the Authorization header
 function getAuthHeaders() {
-    const token = localStorage.getItem('access_token');
+    const token = localStorage.getItem('token');
     return {
         'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
     };
 }
 
@@ -31,7 +32,7 @@ export async function login(email, password) {
 
         // Save token to localStorage and set as a cookie
         if (data.access_token) {
-            localStorage.setItem('access_token', data.access_token);
+            localStorage.setItem('token', data.access_token);
             document.cookie = `access_token_cookie=${data.access_token}; path=/;`;
         }
 
@@ -71,7 +72,7 @@ export const logout = async () => {
             method: 'POST',
             credentials: 'include',
         });
-        localStorage.removeItem('access_token');
+        localStorage.removeItem('token');
         document.cookie = 'access_token_cookie=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
     } catch (error) {
         console.error('Error logging out:', error);
@@ -111,7 +112,7 @@ export async function refreshToken() {
         }
 
         const data = await response.json();
-        localStorage.setItem('access_token', data.access_token);
+        localStorage.setItem('token', data.access_token);
         document.cookie = `access_token_cookie=${data.access_token}; path=/;`;
 
         return data.access_token;
@@ -148,10 +149,7 @@ export async function addPlant(formData) {
     try {
         const response = await fetch(`${API_BASE_URL}/plants`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                ...getAuthHeaders(),
-            },
+            headers: getAuthHeaders(),
             credentials: 'include',
             body: JSON.stringify(formData),  // Send as JSON instead of FormData
         });
@@ -167,17 +165,12 @@ export async function addPlant(formData) {
     }
 }
 
-
-
 // Function to update an existing plant
 export async function updatePlant(plantId, plantData) {
     try {
         const response = await fetch(`${API_BASE_URL}/plants/${plantId}`, {
             method: 'PATCH',
-            headers: {
-                'Content-Type': 'application/json',
-                ...getAuthHeaders(),
-            },
+            headers: getAuthHeaders(),
             credentials: 'include',
             body: JSON.stringify(plantData),
         });
@@ -213,15 +206,176 @@ export async function deletePlant(plantId) {
     }
 }
 
+// Function to add a new care schedule
+export async function addCareSchedule(careScheduleData) {
+    try {
+        const response = await fetch(`${API_BASE_URL}/care_schedules`, {
+            method: 'POST',
+            headers: getAuthHeaders(),
+            credentials: 'include',
+            body: JSON.stringify(careScheduleData),
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to add care schedule');
+        }
+
+        return await response.json();
+    } catch (error) {
+        console.error('Error adding care schedule:', error);
+        throw error;
+    }
+}
+
+// Function to fetch all care schedules
+export async function fetchCareSchedules() {
+    try {
+        const response = await fetch(`${API_BASE_URL}/care_schedules`, {
+            method: 'GET',
+            credentials: 'include',
+            headers: getAuthHeaders(),
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to fetch care schedules');
+        }
+
+        return await response.json();
+    } catch (error) {
+        console.error('Error fetching care schedules:', error);
+        throw error;
+    }
+}
+
+// Function to update an existing care schedule
+export async function updateCareSchedule(scheduleId, careScheduleData) {
+    try {
+        const response = await fetch(`${API_BASE_URL}/care_schedules/${scheduleId}`, {
+            method: 'PATCH',
+            headers: getAuthHeaders(),
+            credentials: 'include',
+            body: JSON.stringify(careScheduleData),
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to update care schedule');
+        }
+
+        return await response.json();
+    } catch (error) {
+        console.error('Error updating care schedule:', error);
+        throw error;
+    }
+}
+
+// Function to delete a care schedule
+export async function deleteCareSchedule(scheduleId) {
+    try {
+        const response = await fetch(`${API_BASE_URL}/care_schedules/${scheduleId}`, {
+            method: 'DELETE',
+            credentials: 'include',
+            headers: getAuthHeaders(),
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to delete care schedule');
+        }
+
+        return await response.json();
+    } catch (error) {
+        console.error('Error deleting care schedule:', error);
+        throw error;
+    }
+}
+
+// Function to add a new tip
+export async function addTip(tipData) {
+    try {
+        const response = await fetch(`${API_BASE_URL}/tips`, {
+            method: 'POST',
+            headers: getAuthHeaders(),
+            credentials: 'include',
+            body: JSON.stringify(tipData),
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to add tip');
+        }
+
+        return await response.json();
+    } catch (error) {
+        console.error('Error adding tip:', error);
+        throw error;
+    }
+}
+
+// Function to fetch all tips
+export async function fetchTips() {
+    try {
+        const response = await fetch(`${API_BASE_URL}/tips`, {
+            method: 'GET',
+            credentials: 'include',
+            headers: getAuthHeaders(),
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to fetch tips');
+        }
+
+        return await response.json();
+    } catch (error) {
+        console.error('Error fetching tips:', error);
+        throw error;
+    }
+}
+
+// Function to update an existing tip
+export async function updateTip(tipId, tipData) {
+    try {
+        const response = await fetch(`${API_BASE_URL}/tips/${tipId}`, {
+            method: 'PATCH',
+            headers: getAuthHeaders(),
+            credentials: 'include',
+            body: JSON.stringify(tipData),
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to update tip');
+        }
+
+        return await response.json();
+    } catch (error) {
+        console.error('Error updating tip:', error);
+        throw error;
+    }
+}
+
+// Function to delete a tip
+export async function deleteTip(tipId) {
+    try {
+        const response = await fetch(`${API_BASE_URL}/tips/${tipId}`, {
+            method: 'DELETE',
+            credentials: 'include',
+            headers: getAuthHeaders(),
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to delete tip');
+        }
+
+        return await response.json();
+    } catch (error) {
+        console.error('Error deleting tip:', error);
+        throw error;
+    }
+}
+
 // Function to add a new layout
 export async function addLayout(layoutData) {
     try {
         const response = await fetch(`${API_BASE_URL}/layouts`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                ...getAuthHeaders(),
-            },
+            headers: getAuthHeaders(),
             credentials: 'include',
             body: JSON.stringify(layoutData),
         });
@@ -262,10 +416,7 @@ export async function updateLayout(layoutId, layoutData) {
     try {
         const response = await fetch(`${API_BASE_URL}/layouts/${layoutId}`, {
             method: 'PATCH',
-            headers: {
-                'Content-Type': 'application/json',
-                ...getAuthHeaders(),
-            },
+            headers: getAuthHeaders(),
             credentials: 'include',
             body: JSON.stringify(layoutData),
         });
@@ -301,22 +452,148 @@ export async function deleteLayout(layoutId) {
     }
 }
 
-// Function to fetch a specific layout
-export async function fetchLayout(layoutId) {
+
+
+// Fetch all forum posts with comments
+export const fetchForumPosts = async () => {
     try {
-        const response = await fetch(`${API_BASE_URL}/layouts/${layoutId}`, {
-            method: 'GET',
-            credentials: 'include',
-            headers: getAuthHeaders(),
-        });
-
-        if (!response.ok) {
-            throw new Error('Failed to fetch layout');
-        }
-
-        return await response.json();
+      const response = await fetch(`${API_BASE_URL}/forum_posts`, {
+        method: 'GET',
+        credentials: 'include',
+        headers: getAuthHeaders(),
+      });
+  
+      if (!response.ok) {
+        throw new Error(`Error fetching forum posts: ${response.statusText}`);
+      }
+  
+      return await response.json();
     } catch (error) {
-        console.error('Error fetching layout:', error);
-        throw error;
+      console.error(error);
+      throw error;
     }
-}
+  };
+  
+  // Add a new forum post
+  export const addForumPost = async (title, content) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/forum_posts`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        credentials: 'include',
+        body: JSON.stringify({ title, content }),
+      });
+  
+      if (!response.ok) {
+        throw new Error(`Error adding forum post: ${response.statusText}`);
+      }
+  
+      return await response.json();
+    } catch (error) {
+      console.error(error);
+      throw error;
+    }
+  };
+  
+  // Update a forum post
+  export const updateForumPost = async (postId, title, content) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/forum_posts/${postId}`, {
+        method: 'PUT',
+        headers: getAuthHeaders(),
+        credentials: 'include',
+        body: JSON.stringify({ title, content }),
+      });
+  
+      if (!response.ok) {
+        throw new Error(`Error updating forum post: ${response.statusText}`);
+      }
+  
+      return await response.json();
+    } catch (error) {
+      console.error(error);
+      throw error;
+    }
+  };
+  
+  // Delete a forum post
+  export const deleteForumPost = async (postId) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/forum_posts/${postId}`, {
+        method: 'DELETE',
+        credentials: 'include',
+        headers: getAuthHeaders(),
+      });
+  
+      if (!response.ok) {
+        throw new Error(`Error deleting forum post: ${response.statusText}`);
+      }
+  
+      return await response.json();
+    } catch (error) {
+      console.error(error);
+      throw error;
+    }
+  };
+  
+  // Add a comment to a forum post
+  export const addComment = async (postId, content) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/forum_posts/${postId}/comments`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ content }),
+      });
+  
+      if (!response.ok) {
+        throw new Error(`Error adding comment: ${response.statusText}`);
+      }
+  
+      return await response.json();
+    } catch (error) {
+      console.error(error);
+      throw error;
+    }
+  };
+  
+  // Update a comment
+  export const updateComment = async (commentId, content) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/comments/${commentId}`, {
+        method: 'PUT',
+        credentials: 'include',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ content }),
+      });
+  
+      if (!response.ok) {
+        throw new Error(`Error updating comment: ${response.statusText}`);
+      }
+  
+      return await response.json();
+    } catch (error) {
+      console.error(error);
+      throw error;
+    }
+  };
+  
+  // Delete a comment
+  export const deleteComment = async (commentId) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/comments/${commentId}`, {
+        method: 'DELETE',
+        credentials: 'include',
+        headers: getAuthHeaders(),
+      });
+  
+      if (!response.ok) {
+        throw new Error(`Error deleting comment: ${response.statusText}`);
+      }
+  
+      return await response.json();
+    } catch (error) {
+      console.error(error);
+      throw error;
+    }
+  };

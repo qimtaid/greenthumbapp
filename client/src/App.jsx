@@ -6,6 +6,7 @@ import Footer from './components/Footer';
 import Home from './components/Home';
 import Plants from './components/Plants';
 import CareSchedule from './components/CareSchedule';
+import Tips from './components/Tips';
 import Forum from './components/Forum';
 import Layouts from './components/Layouts';
 import AboutUs from './components/AboutUs';
@@ -74,6 +75,10 @@ function App() {
               <Route
                 path="/careschedule"
                 element={isAuthenticated ? <CareSchedule /> : <Navigate to="/login" />}
+              />
+              <Route
+                path="/tips"
+                element={isAuthenticated ? <Tips /> : <Navigate to="/login" />}
               />
               <Route
                 path="/forum"
