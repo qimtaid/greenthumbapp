@@ -7,7 +7,7 @@ from flask_jwt_extended import JWTManager, create_access_token, create_refresh_t
 from flask_cors import CORS
 from werkzeug.utils import secure_filename
 import os
-from models import db, User, Plant, CareSchedule, Tip, Layout
+from models import db, User, Plant, CareSchedule, Tip, Layout, ForumPost, Comment
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///greenthumb.db'
@@ -377,62 +377,154 @@ def delete_layout(id):
     return '', 204
 
 
-""" # Forum Posts Management
-@app.route('/forum/posts', methods=['GET'])
-def get_forum_posts():
-    posts = ForumPost.query.all()
-    return jsonify([post.to_dict() for post in posts])
-
-@app.route('/forum/posts', methods=['POST'])
+# Route to fetch all forum posts with comments
+@app.route('/forum_posts', methods=['GET'])
 @jwt_required()
-def create_forum_post():
-    data = request.get_json()
-    user_id = get_jwt_identity()
-    new_post = ForumPost(
-        title=data['title'],
-        content=data['content'],
-        user_id=user_id
-    )
-    db.session.add(new_post)
-    db.session.commit()
-    return jsonify(new_post.to_dict()), 201
+def get_forum_posts():
+    try:
+        posts = ForumPost.query.all()
+        posts_list = [{
+            'id': post.id,
+            'title': post.title,
+            'content': post.content,
+            'author': post.user.username,
+            'created_at': post.created_at,
+            'comments': [{'id': comment.id, 'content': comment.content, 'author': comment.user.username, 'date_created': comment.date_created} for comment in post.comments]
+        } for post in posts]
+        return jsonify(posts_list), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
-@app.route('/forum/posts/<int:post_id>', methods=['PUT'])
+# Route to add a new forum post
+@app.route('/forum_posts', methods=['POST'])
+@jwt_required()
+def add_forum_post():
+    data = request.get_json()
+    print("Received data:", data)
+    current_user_id = get_jwt_identity()
+    user = User.query.get(current_user_id)
+
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+
+    # Validate that both title and content are present
+    title = data.get('title')
+    content = data.get('content')
+
+    if not title or not content:
+        return jsonify({'error': 'Title and content are required.'}), 400
+
+    try:
+        # Create the new forum post
+        new_post = ForumPost(title=title, content=content, user_id=user.id)
+        db.session.add(new_post)
+        db.session.commit()
+
+        return jsonify({
+            'message': 'Forum post added successfully',
+            'post': {
+                'id': new_post.id,
+                'title': new_post.title,
+                'content': new_post.content,
+                'user_id': new_post.user_id,
+                'created_at': new_post.created_at.strftime('%Y-%m-%d %H:%M:%S')
+            }
+        }), 201
+    except Exception as e:
+        print(f"Error adding forum post: {e}")
+        return jsonify({'error': 'An error occurred while adding the forum post.'}), 500
+
+
+# Route to update a forum post
+@app.route('/forum_posts/<int:post_id>', methods=['PUT'])
 @jwt_required()
 def update_forum_post(post_id):
-    data = request.get_json()
+    data = request.json
+    current_user_id = get_jwt_identity()
     post = ForumPost.query.get_or_404(post_id)
-    post.title = data['title']
-    post.content = data['content']
-    db.session.commit()
-    return jsonify(post.to_dict())
 
-@app.route('/forum/posts/<int:post_id>', methods=['DELETE'])
+    if post.user_id != current_user_id:
+        return jsonify({'error': 'Permission denied'}), 403
+
+    try:
+        post.title = data.get('title', post.title)
+        post.content = data.get('content', post.content)
+        db.session.commit()
+        return jsonify({'message': 'Forum post updated successfully'}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# Route to delete a forum post
+@app.route('/forum_posts/<int:post_id>', methods=['DELETE'])
 @jwt_required()
 def delete_forum_post(post_id):
+    current_user_id = get_jwt_identity()
     post = ForumPost.query.get_or_404(post_id)
-    db.session.delete(post)
-    db.session.commit()
-    return jsonify({'message': 'Post deleted successfully'})
 
-@app.route('/forum/posts/<int:post_id>/comments', methods=['GET'])
-def get_comments(post_id):
-    comments = Comment.query.filter_by(post_id=post_id).all()
-    return jsonify([comment.to_dict() for comment in comments])
+    if post.user_id != current_user_id:
+        return jsonify({'error': 'Permission denied'}), 403
 
-@app.route('/forum/posts/<int:post_id>/comments', methods=['POST'])
+    try:
+        db.session.delete(post)
+        db.session.commit()
+        return jsonify({'message': 'Forum post deleted successfully'}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# Route to add a comment to a forum post
+@app.route('/forum_posts/<int:post_id>/comments', methods=['POST'])
 @jwt_required()
 def add_comment(post_id):
-    data = request.get_json()
-    user_id = get_jwt_identity()
-    new_comment = Comment(
-        content=data['content'],
-        post_id=post_id,
-        user_id=user_id
-    )
-    db.session.add(new_comment)
-    db.session.commit()
-    return jsonify(new_comment.to_dict()), 201 """
+    data = request.json
+    current_user_id = get_jwt_identity()
+    user = User.query.get(current_user_id)
+    post = ForumPost.query.get_or_404(post_id)
+    
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+
+    try:
+        new_comment = Comment(content=data['content'], user_id=user.id, post_id=post.id)
+        db.session.add(new_comment)
+        db.session.commit()
+        return jsonify({'message': 'Comment added successfully', 'comment': {'id': new_comment.id, 'content': new_comment.content}}), 201
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# Route to update a comment
+@app.route('/comments/<int:comment_id>', methods=['PUT'])
+@jwt_required()
+def update_comment(comment_id):
+    data = request.json
+    current_user_id = get_jwt_identity()
+    comment = Comment.query.get_or_404(comment_id)
+
+    if comment.user_id != current_user_id:
+        return jsonify({'error': 'Permission denied'}), 403
+
+    try:
+        comment.content = data.get('content', comment.content)
+        db.session.commit()
+        return jsonify({'message': 'Comment updated successfully'}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# Route to delete a comment
+@app.route('/comments/<int:comment_id>', methods=['DELETE'])
+@jwt_required()
+def delete_comment(comment_id):
+    current_user_id = get_jwt_identity()
+    comment = Comment.query.get_or_404(comment_id)
+
+    if comment.user_id != current_user_id:
+        return jsonify({'error': 'Permission denied'}), 403
+
+    try:
+        db.session.delete(comment)
+        db.session.commit()
+        return jsonify({'message': 'Comment deleted successfully'}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 
 

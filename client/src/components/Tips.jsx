@@ -168,13 +168,13 @@ const Tips = () => {
         mb={6}
         shadow="md"
       >
-        <Icon as={InfoIcon} boxSize={10} />
+        <Icon as={InfoIcon} boxSize={12} />
         <Heading size="md">Gardening Tips</Heading>
         <Text fontSize="lg" textAlign="center">
           Here you can add tips based on your gardening experience. Share your knowledge and help others improve their gardens!
         </Text>
       </VStack>
-
+      <Text color="red.500" mt={0} mb={2}>Changes can only be made by the owner</Text>
       <Button onClick={() => openModal()} leftIcon={<AddIcon />} colorScheme="teal" mb={4}>
         Add Tip
       </Button>

@@ -193,11 +193,15 @@ const CareSchedule = () => {
 
       if (isDue) {
         toast({
-          title: 'Care Schedule Due!',
-          description: `It's time to perform the task: ${schedule.task} for your plant.`,
           status: 'info',
-          duration: 5000,
+          duration: 4000,
           isClosable: true,
+          render: () => (
+            <Box color="white" p={3} bg="teal.500" borderRadius="md" shadow="md">
+              <Heading size="md">Care Schedule Due!</Heading>
+              <Text>It's time to perform the task: {schedule.task} for your plant.</Text>
+            </Box>
+          ),
         });
       }
     });
@@ -206,7 +210,7 @@ const CareSchedule = () => {
   useEffect(() => {
     const interval = setInterval(() => {
       checkDueCareSchedules();
-    }, 60000); // Check every 60 seconds
+    }, 10000); // Check every 10 seconds
 
     return () => clearInterval(interval); // Cleanup on unmount
   }, [careSchedules, checkDueCareSchedules]);

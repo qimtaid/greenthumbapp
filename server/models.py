@@ -15,6 +15,8 @@ class User(db.Model):
     plants = db.relationship('Plant', backref='user', lazy=True)
     tips = db.relationship('Tip', backref='user', lazy=True)
     layouts = db.relationship('Layout', backref='user', lazy=True)
+    posts = db.relationship('ForumPost', backref='user', lazy=True)
+    comments = db.relationship('Comment', backref='user', lazy=True)
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
@@ -72,45 +74,23 @@ class Tip(db.Model):
         }
 
 
-""" class ForumPost(db.Model):
+class ForumPost(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(255), nullable=False)
     content = db.Column(db.Text, nullable=False)
-    timestamp = db.Column(db.DateTime, default=db.func.now())
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    
-    # Relationship to User with a unique backref name
-    author = db.relationship('User', backref=db.backref('posts', lazy=True))
+    comments = db.relationship('Comment', backref='forum_post', lazy=True, cascade="all, delete-orphan")
 
-    comments = db.relationship('Comment', backref='post', lazy=True, cascade='all, delete-orphan')
+    def __repr__(self):
+        return f'<ForumPost {self.title}>'
 
-    def to_dict(self):
-        return {
-            'id': self.id,
-            'title': self.title,
-            'content': self.content,
-            'timestamp': self.timestamp,
-            'author': self.author.username,
-            'comments': [comment.to_dict() for comment in self.comments],
-        } """
-
-
-    
-
-""" class Comment(db.Model):
+class Comment(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     content = db.Column(db.Text, nullable=False)
-    timestamp = db.Column(db.DateTime, default=db.func.now())
-    post_id = db.Column(db.Integer, db.ForeignKey('forum_post.id'), nullable=False)
+    date_created = db.Column(db.DateTime, default=datetime.utcnow)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-
-    def to_dict(self):
-        return {
-            'id': self.id,
-            'content': self.content,
-            'timestamp': self.timestamp,
-            'author': self.author.username,
-        } """
+    post_id = db.Column(db.Integer, db.ForeignKey('forum_post.id'), nullable=False)
 
 
 class Layout(db.Model):

@@ -1,5 +1,5 @@
 from app import app, db
-from models import User, Plant, CareSchedule, Tip, Layout
+from models import User, Plant, CareSchedule, Tip, Layout, ForumPost, Comment
 from datetime import datetime
 import json
 
@@ -94,24 +94,57 @@ def seed_database():
                     db.session.add(tip)
         db.session.commit()
 
-        """ # Sample forum posts
+        # Sample forum posts
+        users = {user.username: user for user in User.query.filter(User.username.in_(['Riko-04', 'testuser'])).all()}
+
+        # Sample forum posts
         post_data = [
-            {'title': 'Help with tomatoes', 'content': 'My tomatoes are not growing well.', 'author': 'Riko-04'},
-            {'title': 'Basil care', 'content': 'How do I take care of basil?', 'author': 'testuser'}
+            {'title': 'Help with tomatoes', 'content': 'My tomatoes are not growing well.', 'user': 'Riko-04'},
+            {'title': 'Basil care', 'content': 'How do I take care of basil?', 'user': 'testuser'}
         ]
 
         for post_info in post_data:
-            user = User.query.filter_by(username=post_info['author']).first()
+            user = users.get(post_info['user'])
             if user:
-                post = ForumPost.query.filter_by(title=post_info['title'], author_id=user.id).first()
+                post = ForumPost.query.filter_by(title=post_info['title'], user_id=user.id).first()
                 if not post:
                     post = ForumPost(
                         title=post_info['title'],
                         content=post_info['content'],
-                        author_id=user.id
+                        user_id=user.id
                     )
                     db.session.add(post)
-        db.session.commit() """
+                else:
+                    print(f"Post '{post_info['title']}' already exists for user {post_info['user']}.")
+            else:
+                print(f"User {post_info['user']} not found!")
+
+        db.session.commit()
+
+        # Sample comments data
+        comment_data = [
+            {'post_title': 'Help with tomatoes', 'content': 'Try using more fertilizer.', 'user': 'testuser'},
+            {'post_title': 'Basil care', 'content': 'Make sure it gets enough sunlight.', 'user': 'Riko-04'}
+        ]
+
+        for comment_info in comment_data:
+            post = ForumPost.query.filter_by(title=comment_info['post_title']).first()
+            user = users.get(comment_info['user']) if post else None
+            if post and user:
+                comment = Comment.query.filter_by(post_id=post.id, content=comment_info['content']).first()
+                if not comment:
+                    comment = Comment(
+                        post_id=post.id,
+                        content=comment_info['content'],
+                        user_id=user.id
+                    )
+                    db.session.add(comment)
+                else:
+                    print(f"Comment '{comment_info['content']}' already exists for post '{comment_info['post_title']}'.")
+            else:
+                print(f"Either post '{comment_info['post_title']}' or user '{comment_info['user']}' not found!")
+
+        db.session.commit()
 
         # Seed data for garden layouts
         layout_data = [

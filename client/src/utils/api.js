@@ -454,80 +454,146 @@ export async function deleteLayout(layoutId) {
 
 
 
+// Fetch all forum posts with comments
 export const fetchForumPosts = async () => {
-    const response = await fetch(`${API_BASE_URL}/forum/posts`, {
-      method: 'GET',
-      credentials: 'include',
-    });
-    if (!response.ok) {
-      throw new Error('Failed to fetch posts');
+    try {
+      const response = await fetch(`${API_BASE_URL}/forum_posts`, {
+        method: 'GET',
+        credentials: 'include',
+        headers: getAuthHeaders(),
+      });
+  
+      if (!response.ok) {
+        throw new Error(`Error fetching forum posts: ${response.statusText}`);
+      }
+  
+      return await response.json();
+    } catch (error) {
+      console.error(error);
+      throw error;
     }
-    return await response.json();
   };
   
-  export const addForumPost = async (post) => {
-    const response = await fetch(`${API_BASE_URL}/forum/posts`, {
-      method: 'POST',
-      credentials: 'include',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(post),
-    });
-    if (!response.ok) {
-      throw new Error('Failed to add post');
+  // Add a new forum post
+  export const addForumPost = async (title, content) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/forum_posts`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        credentials: 'include',
+        body: JSON.stringify({ title, content }),
+      });
+  
+      if (!response.ok) {
+        throw new Error(`Error adding forum post: ${response.statusText}`);
+      }
+  
+      return await response.json();
+    } catch (error) {
+      console.error(error);
+      throw error;
     }
-    return await response.json();
   };
   
-  export const updateForumPost = async (postId, post) => {
-    const response = await fetch(`${API_BASE_URL}/forum/posts/${postId}`, {
-      method: 'PUT',
-      credentials: 'include',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(post),
-    });
-    if (!response.ok) {
-      throw new Error('Failed to update post');
+  // Update a forum post
+  export const updateForumPost = async (postId, title, content) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/forum_posts/${postId}`, {
+        method: 'PUT',
+        headers: getAuthHeaders(),
+        credentials: 'include',
+        body: JSON.stringify({ title, content }),
+      });
+  
+      if (!response.ok) {
+        throw new Error(`Error updating forum post: ${response.statusText}`);
+      }
+  
+      return await response.json();
+    } catch (error) {
+      console.error(error);
+      throw error;
     }
-    return await response.json();
   };
   
+  // Delete a forum post
   export const deleteForumPost = async (postId) => {
-    const response = await fetch(`${API_BASE_URL}/forum/posts/${postId}`, {
-      method: 'DELETE',
-      credentials: 'include',
-    });
-    if (!response.ok) {
-      throw new Error('Failed to delete post');
+    try {
+      const response = await fetch(`${API_BASE_URL}/forum_posts/${postId}`, {
+        method: 'DELETE',
+        credentials: 'include',
+        headers: getAuthHeaders(),
+      });
+  
+      if (!response.ok) {
+        throw new Error(`Error deleting forum post: ${response.statusText}`);
+      }
+  
+      return await response.json();
+    } catch (error) {
+      console.error(error);
+      throw error;
     }
-    return await response.json();
   };
   
-  export const fetchComments = async (postId) => {
-    const response = await fetch(`${API_BASE_URL}/forum/posts/${postId}/comments`, {
-      method: 'GET',
-      credentials: 'include',
-    });
-    if (!response.ok) {
-      throw new Error('Failed to fetch comments');
+  // Add a comment to a forum post
+  export const addComment = async (postId, content) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/forum_posts/${postId}/comments`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ content }),
+      });
+  
+      if (!response.ok) {
+        throw new Error(`Error adding comment: ${response.statusText}`);
+      }
+  
+      return await response.json();
+    } catch (error) {
+      console.error(error);
+      throw error;
     }
-    return await response.json();
   };
   
-  export const addComment = async (postId, comment) => {
-    const response = await fetch(`${API_BASE_URL}/forum/posts/${postId}/comments`, {
-      method: 'POST',
-      credentials: 'include',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(comment),
-    });
-    if (!response.ok) {
-      throw new Error('Failed to add comment');
+  // Update a comment
+  export const updateComment = async (commentId, content) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/comments/${commentId}`, {
+        method: 'PUT',
+        credentials: 'include',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ content }),
+      });
+  
+      if (!response.ok) {
+        throw new Error(`Error updating comment: ${response.statusText}`);
+      }
+  
+      return await response.json();
+    } catch (error) {
+      console.error(error);
+      throw error;
     }
-    return await response.json();
+  };
+  
+  // Delete a comment
+  export const deleteComment = async (commentId) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/comments/${commentId}`, {
+        method: 'DELETE',
+        credentials: 'include',
+        headers: getAuthHeaders(),
+      });
+  
+      if (!response.ok) {
+        throw new Error(`Error deleting comment: ${response.statusText}`);
+      }
+  
+      return await response.json();
+    } catch (error) {
+      console.error(error);
+      throw error;
+    }
   };
