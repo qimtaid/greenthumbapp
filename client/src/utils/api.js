@@ -1,4 +1,4 @@
-const API_BASE_URL = 'https://greenthumbapp-2.onrender.com/';
+const API_BASE_URL = 'https://greenthumbapp-2.onrender.com';
 
 // Helper function to set the Authorization header
 function getAuthHeaders() {
